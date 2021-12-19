@@ -141,7 +141,7 @@ describe('claimPass', async () => {
 
         await cccStoreContract
           .connect(receiver)
-          .mintWithPass(amount, passType, ...splitSig, {value: totalPrice});
+          .mintWithPass(3, amount, passType, ...splitSig, {value: totalPrice});
 
         expect(await cccStoreContract.mintedCCCOf(receiver.address)).to.eq(
           mintedAmount.toNumber() + amount

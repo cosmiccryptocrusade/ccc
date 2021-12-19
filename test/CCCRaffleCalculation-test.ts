@@ -46,7 +46,7 @@ describe('CCCRaffleCalculation', () => {
       amounts.push(4);
     }
     totalTickets = amounts.reduce((a, b) => a + b, 0);
-    await cccCalculationContract.setTicketHolders(holders, amounts);
+    await cccCalculationContract.setTicketHolders(holders, amounts, 0);
     // getRandomNumber() will callback fulfillRandomness()
     await cccCalculationContract.testFulfillRandomness(10);
     const raffleResult = await cccCalculationContract.runRaffle(
