@@ -248,18 +248,32 @@ contract CCCStore is Ownable, VRFConsumerBase {
         raffleNumber = _raffleNumber;
     }
 
-    /// @dev The raffle result can be set in batches
-    function setRaffleResults(address[] memory _holders, uint256[] memory _amounts, uint256 startIndex,bool _calculationExecuted) external onlyOwner {
-        for (uint256 i = startIndex; i < _holders.length; i++) {
+    /// @dev The raffle result can be set in batches.
+    function setRaffleResults(
+        address[] memory _holders,
+        uint256[] memory _amounts,
+        bool _calculationExecuted
+        ) external onlyOwner {
+        for (uint256 i = 0; i < _holders.length; i++) {
             resultOf[_holders[i]].validTicketAmount = _amounts[i];
         }
         calculationExecuted = _calculationExecuted;
     }
 
-    /// @dev The resultant hash can be checked in batches, this is used to verify that the data copied over from L2 matches
-    function getResultHash(address[] memory _holders, bytes memory hashToEncode, uint256 startIndex) external view returns (bytes32 resultHash) {
-        for (uint256 i = startIndex; i < _holders.length; i++) {
-            hashToEncode = abi.encodePacked(_holders[i],resultOf[_holders[i]].validTicketAmount,hashToEncode);
+    /// @dev The ticket hash can be checked in batches, with hashToEncode as the prev result hash.
+    /// This is used to verify that the tickets copied over to L2 matches.
+    function getTicketHash(address[] memory _holders, bytes memory hashToEncode) external view returns (bytes32 ticketHash) {
+        for (uint256 i = 0; i < _holders.length; i++) {
+            hashToEncode = abi.encodePacked(_holders[i], ticketsOf[_holders[i]].amount, hashToEncode);
+        }
+        return keccak256(abi.encodePacked(hashToEncode));
+    }
+
+    /// @dev The result hash can be checked in batches, with hashToEncode as the prev result hash.
+    /// This is used to verify that the results copied over from L2 matches.
+    function getResultHash(address[] memory _holders, bytes memory hashToEncode) external view returns (bytes32 resultHash) {
+        for (uint256 i = 0; i < _holders.length; i++) {
+            hashToEncode = abi.encodePacked(_holders[i], resultOf[_holders[i]].validTicketAmount, hashToEncode);
         }
         return keccak256(abi.encodePacked(hashToEncode));
     }
@@ -347,7 +361,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
         for (uint256 i = n-1; i > 0; i--) {
             // select random number from 0 to i inclusive
             entropy = uint256(keccak256(abi.encode(entropy)));
-            uint256 j = (entropy) % (i+i);
+            uint256 j = (entropy) % (i+1);
 
             // swap item i and j
             uint256 temp = shuffledArray[i];

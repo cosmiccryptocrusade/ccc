@@ -10,8 +10,9 @@ import {
 } from '../types';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
-import { testSets, testSetForPrint } from './utils/CalcHelper';
 import { signTypedData, DomainType, splitSignature } from './utils/EIP712';
+import raffleResultsData from '../test/data/raffle-results-test-data.json';
+import runRaffleData from '../test/data/run-raffle-test-data.json';
 
 // import { intToHex } from 'ethjs-util';
 
@@ -766,6 +767,105 @@ describe('CCCStore', () => {
     });
   });
 
+  describe('setRaffleNumber', async () => {
+    const raffleNumber = raffleResultsData.raffleNumber;
+
+    it("fails for non-owner's request", async () => {
+      const nonOwner = account1;
+      await expect(
+        cccStoreContract.connect(nonOwner).setRaffleNumber(raffleNumber)
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it("fails if raffle number is not set correctly", async () => {
+      await cccStoreContract.setRaffleNumber(raffleNumber);
+      expect(
+        await cccStoreContract.raffleNumber()
+      ).to.eq(raffleNumber);
+    });
+  });
+
+  describe('setRaffleResults', async () => {
+    const _holders = raffleResultsData.holders;
+    const _amounts = raffleResultsData.amounts;
+
+    it("fails for non-owner's request", async () => {
+      const nonOwner = account1;
+      await expect(
+        cccStoreContract.connect(nonOwner).setRaffleResults([], [], false)
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it("fails if resultOf does not match input data", async () => {
+      const pageSize = 3;
+      for (let i = 0; i < _holders.length; i += pageSize) {
+        await cccStoreContract.setRaffleResults(
+          _holders.slice(i, i + pageSize),
+          _amounts.slice(i, i + pageSize),
+          false
+        );
+      };
+      for (let i = 0; i < _holders.length; i++) {
+        const resultOfHolder = await cccStoreContract.resultOf(_holders[i]);
+        expect(
+          resultOfHolder.validTicketAmount
+        ).to.eq(_amounts[i]);
+      };
+    });
+  });
+
+  describe('getTicketHash', async () => {
+    const _holders = runRaffleData.holders;
+    const _amounts = runRaffleData.amounts;
+
+    it("fails if error", async () => {
+      const openingHours = await getCurrentTimestamp();
+      await cccStoreContract.setOpeningHours(openingHours);
+      await ethers.provider.send('evm_increaseTime', [
+        OPERATION_SECONDS_FOR_VIP + 1,
+      ]);
+      await ethers.provider.send('evm_mine', []);
+      await cccStoreContract.connect(account1).takingTickets(
+        _amounts[0],
+        { value: TICKET_PRICE_IN_WEI.mul(_amounts[0]) }
+      );
+      await cccStoreContract.connect(account2).takingTickets(
+        _amounts[1],
+        { value: TICKET_PRICE_IN_WEI.mul(_amounts[1]) }
+      );
+      const pageSize = 3;
+      let hashToEncode = "0x00000000000000000000000000000000";
+      for (let i = 0; i < _holders.length; i += pageSize) {
+        hashToEncode = await cccStoreContract.getTicketHash(
+          _holders.slice(i, i + pageSize),
+          hashToEncode
+        );
+      };
+    });
+  });
+
+  describe('getResultHash', async () => {
+    const _holders = raffleResultsData.holders;
+    const _amounts = raffleResultsData.amounts;
+
+    it("fails if error", async () => {
+      const pageSize = 3;
+      for (let i = 0; i < _holders.length; i += pageSize) {
+        await cccStoreContract.setRaffleResults(
+          _holders.slice(i, i + pageSize),
+          _amounts.slice(i, i + pageSize),
+          false
+        );
+      };
+      let hashToEncode = "0x00000000000000000000000000000000";
+      for (let i = 0; i < _holders.length; i += pageSize) {
+        hashToEncode = await cccStoreContract.getResultHash(
+          _holders.slice(i, i + pageSize),
+          hashToEncode
+        );
+      };
+    });
+  });
 
   describe('mintCCC', async () => {
     let firstTwoTicketsHolder: SignerWithAddress;
@@ -809,7 +909,6 @@ describe('CCCStore', () => {
             [firstTwoTicketsHolder.address
             , allTicketsHolder.address] //ticketHolders
             , [2, ticketAmount] //ticketAmounts
-            , 0 //StartIndex
             , true) 
     });
 
@@ -887,6 +986,12 @@ describe('CCCStore', () => {
       await expect(cccStoreContract.connect(allTicketsHolder).mintCCC())
         .to.emit(cccStoreContract, 'MintCCC')
         .withArgs(allTicketsHolder.address, MAX_MINT_PER_TX);
+    });
+  });
+
+  describe('shuffle', async () => {
+    it("fails if error", async () => {
+      const shuffledArray = await cccStoreContract.shuffle(10000);
     });
   });
 
