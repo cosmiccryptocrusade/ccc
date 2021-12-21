@@ -11,11 +11,11 @@ const main: () => Promise<any> = async () => {
   await contract.deployed();
   console.log('Contract deployed at:', contract.address);
   return {
-    'CCCStore':contract.address,
+    'CCCStore': contract.address,
   };
 };
 
-async function verify(contractAddress:any,...args:any) {
+async function verify(contractAddress: any, ...args: any) {
   console.log("verifying", contractAddress, ...args);
   await hre.run("verify:verify", {
     address: contractAddress,
@@ -26,18 +26,16 @@ async function verify(contractAddress:any,...args:any) {
   });
 }
 
-
-function delay(ms:number) { 
+function delay(ms: number) {
   return new Promise( resolve => setTimeout(resolve, ms) );
 }
-
 
 main()
   .then(async (deployedData) => {
     await delay(80000);
     await verify(deployedData.CCCStore); //Verify the master contract
   
-    process.exit(0)
+    process.exit(0);
   })
   .catch((error) => {
     console.error(error);

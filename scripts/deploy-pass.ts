@@ -6,7 +6,7 @@ const main: () => Promise<any> = async () => {
   const [deployer] = await ethers.getSigners();
   console.log('Deploying contracts with the account:', deployer.address);
 
-  const Pass = await ethers.getContractFactory('contracts/Pass.sol:Pass');
+  const Pass = await ethers.getContractFactory('CCCPass');
   const contract = await Pass.deploy(
     deployData.passContractConfigs.name,
     deployData.passContractConfigs.baseURI
@@ -15,35 +15,33 @@ const main: () => Promise<any> = async () => {
   await contract.deployed();
   console.log('Contract deployed at:', contract.address);
   return {
-    'Pass':contract.address,
+    'CCCPass': contract.address,
   };
 };
 
-
-async function verify(contractAddress:any,...args:any) {
+async function verify(contractAddress: any, ...args: any) {
   console.log("verifying", contractAddress, ...args);
   await hre.run("verify:verify", {
     address: contractAddress,
-    contract: "contracts/Pass.sol:Pass",
+    contract: "contracts/CCCPass.sol:CCCPass",
     constructorArguments: [
       ...args
     ],
   });
 }
 
-
-function delay(ms:number) { 
+function delay(ms: number) {
   return new Promise( resolve => setTimeout(resolve, ms) );
 }
-
 
 main()
   .then(async (deployedData) => {
     await delay(100000);
-    await verify(deployedData.Pass,deployData.passContractConfigs.name,
+    await verify(deployedData.CCCPass,
+      deployData.passContractConfigs.name,
       deployData.passContractConfigs.baseURI); //Verify the master contract
   
-    process.exit(0)
+    process.exit(0);
   })
   .catch((error) => {
     console.error(error);

@@ -1,16 +1,15 @@
 import { ethers } from 'hardhat';
-import * as hre from "hardhat";
 
-const storeAddress = "0xeEE26CF2B31e133cfaFDEbfe7A97b68AA6bB8E26";
-const passAddress = "0xafCe5092D0f112753dABda7d22202ADfD2872EA3";
-const factoryAddress = "0xF144DA5442980f6506d40A1D6Dab2Cdfa8CDF1d1";
+const factoryAddress = '0x5fbdb2315678afecb367f032d93f642f64180aa3';
+const passAddress = '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512';
+const storeAddress = '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0';
 
 const main: () => Promise<any> = async () => {
   const [deployer] = await ethers.getSigners();
-  console.log("init contracts with the account:", deployer.address);
+  console.log('init contracts with the account:', deployer.address);
 
   const Store = await ethers.getContractFactory('CCCStore');
-  const Pass = await ethers.getContractFactory('contracts/Pass.sol:Pass');
+  const Pass = await ethers.getContractFactory('CCCPass');
   const Factory = await ethers.getContractFactory('CCCFactory');
 
   const cccStoreContract = await Store.attach(storeAddress);
@@ -29,15 +28,11 @@ const main: () => Promise<any> = async () => {
   await passContract.setClaimUntil(currentTimestamp + 360000);
   await passContract.unpause();
 
-
   let openingHours = 0;
   openingHours = await getCurrentTimestamp();
   await cccStoreContract.setOpeningHours(openingHours);
 
-
-
-  console.log("Completed init actions");
-  return null
+  console.log('Completed init actions');
 };
 
 const getCurrentTimestamp = async () => {
@@ -48,18 +43,9 @@ const getCurrentTimestamp = async () => {
   return currentTimestamp;
 };
 
-
-function delay(ms:number) { 
-  return new Promise( resolve => setTimeout(resolve, ms) );
-}
-
-
 main()
-  .then(async (deployedData) => {
-    // await delay(80000);
-    // await verify(deployedData.CCCStore); //Verify the master contract
-  
-    process.exit(0)
+  .then(async () => {
+    process.exit(0);
   })
   .catch((error) => {
     console.error(error);
