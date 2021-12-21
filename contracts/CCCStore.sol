@@ -271,11 +271,12 @@ contract CCCStore is Ownable, VRFConsumerBase {
 
     /// @dev The result hash can be checked in batches, with hashToEncode as the prev result hash.
     /// This is used to verify that the results copied over from L2 matches.
-    function getResultHash(address[] memory _holders, bytes memory hashToEncode) external view returns (bytes32 resultHash) {
+    function getResultHash(address[] memory _holders) external view returns (bytes32 resultHash) {
+        bytes32 hashToEncode = "";
         for (uint256 i = 0; i < _holders.length; i++) {
-            hashToEncode = abi.encodePacked(_holders[i], resultOf[_holders[i]].validTicketAmount, hashToEncode);
+            hashToEncode = keccak256(abi.encodePacked(_holders[i], resultOf[_holders[i]].validTicketAmount, hashToEncode));
         }
-        return keccak256(abi.encodePacked(hashToEncode));
+        return hashToEncode;
     }
 
     function mintCCC() external {

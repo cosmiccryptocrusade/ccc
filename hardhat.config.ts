@@ -38,6 +38,7 @@ const config: HardhatUserConfig = {
       accounts: {
         accountsBalance: '100000000000000000000000', // 100,000eth
       },
+      blockGasLimit:30000000000
     },
     localhost: {
       url: `http://127.0.0.1:8545/`,
