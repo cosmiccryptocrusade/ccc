@@ -9,7 +9,6 @@ contract CCCRaffleCalculation is Ownable, VRFConsumerBase {
         Chainlink VRF
      */
     bytes32 internal keyHash;
-    bytes hashToEncode;
     uint256 internal fee;
     uint256 public raffleNumber;
 
@@ -180,19 +179,29 @@ contract CCCRaffleCalculation is Ownable, VRFConsumerBase {
                 lastTargetIndex
             );
             currTotal += myTicket.amount;
+            resultOf[myTicket.holder].validTicketAmount = validTicketAmount;
 
             uint256 remainingTickets = myTicket.amount - validTicketAmount;
             uint256 changes = remainingTickets * ticketPrice;
             emit SetResult(myTicket.holder, validTicketAmount, changes);
-            hashToEncode = abi.encodePacked(myTicket.holder,validTicketAmount,hashToEncode);
         }
     }
 
-    function getResultHash() 
-        external 
-        view 
-        returns (bytes32 resultHash) 
-        {
+    /// @dev The ticket hash can be checked in batches, with hashToEncode as the prev result hash.
+    /// This is used to verify that the tickets copied over to L2 matches.
+    function getTicketHash(uint256 startIndex, uint256 endIndex, bytes memory hashToEncode) external view returns (bytes32 ticketHash) {
+        for (uint256 i = startIndex; i < endIndex; i++) {
+            hashToEncode = abi.encodePacked(ticketsOf[i].holder, ticketsOf[i].amount, hashToEncode);
+        }
+        return keccak256(abi.encodePacked(hashToEncode));
+    }
+
+    /// @dev The result hash can be checked in batches, with hashToEncode as the prev result hash.
+    /// This is used to verify that the results copied over from L2 matches.
+    function getResultHash(address[] memory _holders, bytes memory hashToEncode) external view returns (bytes32 resultHash) {
+        for (uint256 i = 0; i < _holders.length; i++) {
+            hashToEncode = abi.encodePacked(_holders[i], resultOf[_holders[i]].validTicketAmount, hashToEncode);
+        }
         return keccak256(abi.encodePacked(hashToEncode));
     }
 }

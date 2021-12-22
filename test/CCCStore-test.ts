@@ -399,7 +399,7 @@ describe('CCCStore', () => {
 
   describe('mintWithPass', async () => {
     let openingHours = 0;
-    openingHours = await getCurrentTimestamp();
+    // openingHours = await getCurrentTimestamp();
     // await cccStoreContract.setOpeningHours(openingHours);
 
    
@@ -473,7 +473,7 @@ describe('CCCStore', () => {
       await expect(
         cccStoreContract
           .connect(receiver)
-          .mintWithPass(3, 1, passType, ...splitSig, { value: totalPrice.sub(1)}))
+          .mintWithPass(3, 3, passType, ...splitSig, { value: totalPrice.sub(1)}))
           .to.be.revertedWith('Not enough money');
     });
 
@@ -509,25 +509,24 @@ describe('CCCStore', () => {
 
       await cccStoreContract
         .connect(receiver)
-        .mintWithPass(3,  amount, passType, ...splitSig, { value: totalPrice});
+        .mintWithPass(3, amount - 1, passType, ...splitSig, { value: totalPrice});
 
+      expect(await cccStoreContract.mintedCCCOf(receiver.address)).to.eq(
+        mintedAmount.toNumber() + amount - 1
+      );
+      expect(await cccStoreContract.newlyMintedCCCWithPass()).to.eq(
+        newlyMintedCCCWithPass.toNumber() + amount - 1
+      );
+
+      await cccStoreContract
+        .connect(receiver)
+        .mintWithPass(3, 1, passType, ...splitSig, { value: totalPrice});
 
       expect(await cccStoreContract.mintedCCCOf(receiver.address)).to.eq(
         mintedAmount.toNumber() + amount
       );
       expect(await cccStoreContract.newlyMintedCCCWithPass()).to.eq(
         newlyMintedCCCWithPass.toNumber() + amount
-      );
-
-      await cccStoreContract
-        .connect(receiver)
-        .mintWithPass(3,  amount, passType, ...splitSig, { value: totalPrice});
-
-      expect(await cccStoreContract.mintedCCCOf(receiver.address)).to.eq(
-        mintedAmount.toNumber() + amount * 2
-      );
-      expect(await cccStoreContract.newlyMintedCCCWithPass()).to.eq(
-        newlyMintedCCCWithPass.toNumber() + amount * 2
       );
     });
 
@@ -577,25 +576,23 @@ describe('CCCStore', () => {
 
     it("emits 'MintWithPass' event", async () => {
       const receiver = account1;
-      const amount = 1;
-      const totalPrice = TICKET_PRICE_IN_WEI;
 
       await expect(
         cccStoreContract
           .connect(receiver)
-          .mintWithPass(3, amount, passType, ...splitSig, { value: totalPrice})
+          .mintWithPass(3, 1, passType, ...splitSig, { value: TICKET_PRICE_IN_WEI})
       )
         .to.emit(cccStoreContract, 'MintWithPass')
-        .withArgs(receiver.address, amount, 0);
+        .withArgs(receiver.address, 1, 0);
 
       const changes = 100;
       await expect(
         cccStoreContract
           .connect(receiver)
-          .mintWithPass(3, amount, passType, ...splitSig, { value: totalPrice})
+          .mintWithPass(3, 2, passType, ...splitSig, { value: TICKET_PRICE_IN_WEI.mul(2).add(changes)})
       )
         .to.emit(cccStoreContract, 'MintWithPass')
-        .withArgs(receiver.address, amount, changes);
+        .withArgs(receiver.address, 2, changes);
     });
   });
 
@@ -786,8 +783,9 @@ describe('CCCStore', () => {
   });
 
   describe('setRaffleResults', async () => {
-    const _holders = raffleResultsData.holders;
-    const _amounts = raffleResultsData.amounts;
+    const pageSize = 3;
+    const holders = raffleResultsData.holders.slice(0, 10);
+    const amounts = raffleResultsData.amounts.slice(0, 10);
 
     it("fails for non-owner's request", async () => {
       const nonOwner = account1;
@@ -797,74 +795,95 @@ describe('CCCStore', () => {
     });
 
     it("fails if resultOf does not match input data", async () => {
-      const pageSize = 3;
-      for (let i = 0; i < _holders.length; i += pageSize) {
+      for (let i = 0; i < holders.length; i += pageSize) {
         await cccStoreContract.setRaffleResults(
-          _holders.slice(i, i + pageSize),
-          _amounts.slice(i, i + pageSize),
+          holders.slice(i, i + pageSize),
+          amounts.slice(i, i + pageSize),
           false
         );
       };
-      for (let i = 0; i < _holders.length; i++) {
-        const resultOfHolder = await cccStoreContract.resultOf(_holders[i]);
+      for (let i = 0; i < holders.length; i++) {
+        const resultOfHolder = await cccStoreContract.resultOf(holders[i]);
         expect(
           resultOfHolder.validTicketAmount
-        ).to.eq(_amounts[i]);
+        ).to.eq(amounts[i]);
       };
     });
   });
 
   describe('getTicketHash', async () => {
-    const _holders = runRaffleData.holders;
-    const _amounts = runRaffleData.amounts;
-
     it("fails if error", async () => {
+      const pageSize = 3;
+      const holders = runRaffleData.holders.slice(0, 10);
+      const amounts = runRaffleData.amounts.slice(0, 10);
       const openingHours = await getCurrentTimestamp();
       await cccStoreContract.setOpeningHours(openingHours);
       await ethers.provider.send('evm_increaseTime', [
         OPERATION_SECONDS_FOR_VIP + 1,
       ]);
       await ethers.provider.send('evm_mine', []);
-      await cccStoreContract.connect(account1).takingTickets(
-        _amounts[0],
-        { value: TICKET_PRICE_IN_WEI.mul(_amounts[0]) }
-      );
-      await cccStoreContract.connect(account2).takingTickets(
-        _amounts[1],
-        { value: TICKET_PRICE_IN_WEI.mul(_amounts[1]) }
-      );
-      const pageSize = 3;
+      for (let i = 0; i < holders.length; i++) {
+        let accountX = await ethers.getSigner(holders[i]);
+        await cccStoreContract.connect(accountX).takingTickets(
+          amounts[i],
+          { value: TICKET_PRICE_IN_WEI.mul(amounts[i]) }
+        );
+      };
+
       let hashToEncode = "0x00000000000000000000000000000000";
-      for (let i = 0; i < _holders.length; i += pageSize) {
+      for (let i = 0; i < holders.length; i += pageSize) {
         hashToEncode = await cccStoreContract.getTicketHash(
-          _holders.slice(i, i + pageSize),
+          holders.slice(i, i + pageSize),
           hashToEncode
         );
+        console.log(hashToEncode, i);
       };
     });
   });
 
   describe('getResultHash', async () => {
-    const _holders = raffleResultsData.holders;
-    const _amounts = raffleResultsData.amounts;
-
     it("fails if error", async () => {
       const pageSize = 3;
-      for (let i = 0; i < _holders.length; i += pageSize) {
+      const holders = raffleResultsData.holders.slice(0, 10);
+      const amounts = raffleResultsData.amounts.slice(0, 10);
+      for (let i = 0; i < holders.length; i += pageSize) {
         await cccStoreContract.setRaffleResults(
-          _holders.slice(i, i + pageSize),
-          _amounts.slice(i, i + pageSize),
+          holders.slice(i, i + pageSize),
+          amounts.slice(i, i + pageSize),
           false
         );
       };
       let hashToEncode = "0x00000000000000000000000000000000";
-      for (let i = 0; i < _holders.length; i += pageSize) {
+      for (let i = 0; i < holders.length; i += pageSize) {
         hashToEncode = await cccStoreContract.getResultHash(
-          _holders.slice(i, i + pageSize),
+          holders.slice(i, i + pageSize),
           hashToEncode
         );
       };
+      console.log(hashToEncode);
     });
+
+    it("fails if error - large", async () => {
+      const pageSize = 250;
+      const holders = raffleResultsData.holders.slice(0, 500);
+      const amounts = raffleResultsData.amounts.slice(0, 500);
+      for (let i = 0; i < holders.length; i += pageSize) {
+        await cccStoreContract.setRaffleResults(
+          holders.slice(i, i + pageSize),
+          amounts.slice(i, i + pageSize),
+          false
+        );
+        console.log("set", i);
+      };
+      let hashToEncode = "0x00000000000000000000000000000000";
+      for (let i = 0; i < holders.length; i += pageSize) {
+        hashToEncode = await cccStoreContract.getResultHash(
+          holders.slice(i, i + pageSize),
+          hashToEncode
+        );
+        console.log(hashToEncode, i);
+      };
+    }).timeout(5000000);
   });
 
   describe('mintCCC', async () => {
@@ -991,7 +1010,7 @@ describe('CCCStore', () => {
 
   describe('shuffle', async () => {
     it("fails if error", async () => {
-      const shuffledArray = await cccStoreContract.shuffle(10000);
+      const shuffledArray = await cccStoreContract.shuffle(1000);
     });
   });
 

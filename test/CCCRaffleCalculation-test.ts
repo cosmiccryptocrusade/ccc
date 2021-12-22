@@ -7,6 +7,7 @@ import {
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
 import { BigNumber } from '@ethersproject/bignumber';
+import runRaffleData from '../test/data/run-raffle-test-data.json';
 
 chai.use(solidity);
 const { expect } = chai;
@@ -20,15 +21,16 @@ describe('CCCRaffleCalculation', () => {
   let totalTickets = 0;
 
   // maxCCC, preMintedCCC, newlyMintedCCCWithPass will be from CCCStore
-  let maxCCC = 10000;
-  let preMintedCCC = 500;
-  let newlyMintedCCCWithPass = maxCCC - preMintedCCC - 4;
+  let maxCCC = 0;
+  let preMintedCCC = 0;
+  let newlyMintedCCCWithPass = 0;
 
   let slotSize: BigNumber;
   let offsetInSlot: BigNumber;
   let lastTargetIndex: BigNumber;
   let holders: string[];
   let amounts: number[];
+  let pageSize = 0;
 
   before(async () => {
     [deployer, account1, account2] = await ethers.getSigners();
@@ -36,29 +38,47 @@ describe('CCCRaffleCalculation', () => {
     const cccCalculation = new CCCRaffleCalculation__factory(deployer);
     cccCalculationContract = await cccCalculation.deploy();
 
-    // account 1 holds ticker #0 #1
-    // account 2 holds ticket #2 to #10
-    // the rest are fillers
-    holders = [account1.address, account2.address];
-    amounts = [2, 9];
-    for (let i = 0; i < 5; i++) {
-      holders.push(EMPTY_ADDRESS);
-      amounts.push(4);
-    }
+    maxCCC = runRaffleData.maxCCC;
+    preMintedCCC = runRaffleData.preMintedCCC;
+    newlyMintedCCCWithPass = runRaffleData.newlyMintedCCCWithPass;
+    holders = runRaffleData.holders.slice(0, 10);
+    amounts = runRaffleData.amounts.slice(0, 10);
+    newlyMintedCCCWithPass = maxCCC - preMintedCCC - 10;
+    pageSize = 3;
     totalTickets = amounts.reduce((a, b) => a + b, 0);
-    await cccCalculationContract.setTicketHolders(holders, amounts, 0);
-    // getRandomNumber() will callback fulfillRandomness()
-    await cccCalculationContract.testFulfillRandomness(10);
-    const raffleResult = await cccCalculationContract.runRaffle(
-      maxCCC,
-      preMintedCCC,
-      newlyMintedCCCWithPass,
-      totalTickets
-    );
-    slotSize = raffleResult["slotSize"];
-    offsetInSlot = raffleResult["offsetInSlot"];
-    lastTargetIndex = raffleResult["lastTargetIndex"];
-    // console.log(slotSize, offsetInSlot, lastTargetIndex);
+  });
+
+  describe('setTicketHolders', async () => {
+    it('fails if error', async () => {
+      for (let i = 0; i < holders.length; i += pageSize) {
+        await cccCalculationContract.setTicketHolders(
+          holders,
+          amounts,
+          i
+        );
+        console.log("set", i);
+      };
+      // for (let i = 0; i < holders.length; i++) {
+      //   console.log(await cccCalculationContract.ticketsOf(i));
+      // };
+    });
+  });
+
+  describe('runRaffle', async () => {
+    it('fails if error', async () => {
+      // getRandomNumber() will callback fulfillRandomness()
+      await cccCalculationContract.testFulfillRandomness(10);
+      const raffleResult = await cccCalculationContract.runRaffle(
+        maxCCC,
+        preMintedCCC,
+        newlyMintedCCCWithPass,
+        totalTickets
+      );
+      slotSize = raffleResult["slotSize"];
+      offsetInSlot = raffleResult["offsetInSlot"];
+      lastTargetIndex = raffleResult["lastTargetIndex"];
+      // console.log(slotSize, offsetInSlot, lastTargetIndex);
+    });
   });
 
   describe('calculateAllResults', async () => {
@@ -68,7 +88,7 @@ describe('CCCRaffleCalculation', () => {
       //   slotSize,
       //   offsetInSlot,
       //   lastTargetIndex,
-      //   noOfHolders
+      //   totalTickets
       // );
       // const receipt = await tx.wait();
       // const event1 = receipt.events?.filter((x) => {return x.logIndex == 0});
@@ -79,49 +99,76 @@ describe('CCCRaffleCalculation', () => {
         lastTargetIndex,
         holders.length,
       )).to.emit(cccCalculationContract, 'SetResult')
-        .withArgs(account1.address, 0, ticketPrice.mul(2))
+        .withArgs(account1.address, 1, ticketPrice.mul(1))
         .to.emit(cccCalculationContract, 'SetResult')
-        .withArgs(account2.address, 2, ticketPrice.mul(7));
+        .withArgs(account2.address, 5, ticketPrice.mul(5));
     });
   });
 
-  describe('testCalculateValidTicketAmount', async () => {
-    it('test winning ticket algorithm for account1', async () => {
-      for (let i = 0; i < slotSize.toNumber(); i++) {
-        offsetInSlot = BigNumber.from(i);
-        const validTicketAmount = await cccCalculationContract.testCalculateValidTicketAmount(
-          0,
-          2,
-          slotSize,
-          offsetInSlot,
-          lastTargetIndex
-        );
-        // console.log(i, validTicketAmount);
-        if (i < 2) {
-          expect(validTicketAmount).to.eq(1);
-        } else {
-          expect(validTicketAmount).to.eq(0);
-        }
-      }
-    });
+  // describe('testCalculateValidTicketAmount', async () => {
+  //   it('test winning ticket algorithm for account1', async () => {
+  //     for (let i = 0; i < slotSize.toNumber(); i++) {
+  //       offsetInSlot = BigNumber.from(i);
+  //       const validTicketAmount = await cccCalculationContract.testCalculateValidTicketAmount(
+  //         0,
+  //         2,
+  //         slotSize,
+  //         offsetInSlot,
+  //         lastTargetIndex
+  //       );
+  //       // console.log(i, validTicketAmount);
+  //       if (i < 2) {
+  //         expect(validTicketAmount).to.eq(1);
+  //       } else {
+  //         expect(validTicketAmount).to.eq(0);
+  //       }
+  //     }
+  //   });
 
-    it('test winning ticket algorithm for account2', async () => {
-      for (let i = 0; i < slotSize.toNumber(); i++) {
-        offsetInSlot = BigNumber.from(i);
-        const validTicketAmount = await cccCalculationContract.testCalculateValidTicketAmount(
-          2,
-          9,
-          slotSize,
-          offsetInSlot,
-          lastTargetIndex
+  //   it('test winning ticket algorithm for account2', async () => {
+  //     for (let i = 0; i < slotSize.toNumber(); i++) {
+  //       offsetInSlot = BigNumber.from(i);
+  //       const validTicketAmount = await cccCalculationContract.testCalculateValidTicketAmount(
+  //         2,
+  //         9,
+  //         slotSize,
+  //         offsetInSlot,
+  //         lastTargetIndex
+  //       );
+  //       // console.log(i, validTicketAmount);
+  //       if (i == 1) {
+  //         expect(validTicketAmount).to.eq(0);
+  //       } else {
+  //         expect(validTicketAmount).to.eq(1);
+  //       }
+  //     }
+  //   });
+  // });
+
+  describe('getTicketHash', async () => {
+    it("fails if error", async () => {
+      let hashToEncode = "0x00000000000000000000000000000000";
+      for (let i = 0; i < holders.length; i += pageSize) {
+        hashToEncode = await cccCalculationContract.getTicketHash(
+          i,
+          Math.min(i + pageSize, holders.length),
+          hashToEncode
         );
-        // console.log(i, validTicketAmount);
-        if (i >= 2 && i <= 3) {
-          expect(validTicketAmount).to.eq(2);
-        } else {
-          expect(validTicketAmount).to.eq(1);
-        }
-      }
+        console.log(hashToEncode, i);
+      };
+    });
+  });
+
+  describe('getResultHash', async () => {
+    it("fails if error", async () => {
+      let hashToEncode = "0x00000000000000000000000000000000";
+      for (let i = 0; i < holders.length; i += pageSize) {
+        hashToEncode = await cccCalculationContract.getResultHash(
+          holders.slice(i, i + pageSize),
+          hashToEncode
+        );
+        console.log(hashToEncode, i);
+      };
     });
   });
 });
