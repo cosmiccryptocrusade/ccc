@@ -64,9 +64,9 @@ contract CCCRaffleCalculation is Ownable, VRFConsumerBase {
     
     /// @dev set ticket holders in batches to avoid hitting the gas block limit
     function setTicketHolders(address[] memory _holders, uint256[] memory _amounts, uint256 startIndex) external onlyOwner {
-        for (uint256 i = startIndex; i < _holders.length; i++) {
-            ticketsOf[i].amount = _amounts[i];
-            ticketsOf[i].holder = _holders[i];
+        for (uint256 i = 0; i < _holders.length; i++) {
+            ticketsOf[startIndex + i].amount = _amounts[i];
+            ticketsOf[startIndex + i].holder = _holders[i];
         }
     }
 
@@ -155,20 +155,17 @@ contract CCCRaffleCalculation is Ownable, VRFConsumerBase {
         }
     }
 
-    // TODO: can we store resultOf or/and the hash of resultOf here as well?
-    // so that we can easily verify on Store that we did not make a mistake in setRaffleResults()
-    // similarly, we can store the hash of ticketsOf on Store so that we can verify
-    // setTicketHolders() is ran here correctly
     function calculateAllResults(
         uint256 slotSize, 
         uint256 offsetInSlot, 
         uint256 lastTargetIndex, 
-        uint256 noOfHolders) 
+        uint256 startIndex,
+        uint256 endIndex,
+        uint256 currTotal)
         external 
         {
         require(raffleNumber > 0, "Invalid Raffle Number");
-        uint256 currTotal = 0;
-        for (uint256 i = 0; i < noOfHolders; i++) {
+        for (uint256 i = startIndex; i < endIndex; i++) {
             ticket memory myTicket = ticketsOf[i];
 
             uint256 validTicketAmount = calculateValidTicketAmount(

@@ -41,10 +41,10 @@ describe('CCCRaffleCalculation', () => {
     maxCCC = runRaffleData.maxCCC;
     preMintedCCC = runRaffleData.preMintedCCC;
     newlyMintedCCCWithPass = runRaffleData.newlyMintedCCCWithPass;
-    holders = runRaffleData.holders.slice(0, 10);
-    amounts = runRaffleData.amounts.slice(0, 10);
-    newlyMintedCCCWithPass = maxCCC - preMintedCCC - 10;
-    pageSize = 3;
+    holders = runRaffleData.holders//.slice(0, 10);
+    amounts = runRaffleData.amounts//.slice(0, 10);
+    // newlyMintedCCCWithPass = maxCCC - preMintedCCC - 10;
+    pageSize = 250;
     totalTickets = amounts.reduce((a, b) => a + b, 0);
   });
 
@@ -52,13 +52,13 @@ describe('CCCRaffleCalculation', () => {
     it('fails if error', async () => {
       for (let i = 0; i < holders.length; i += pageSize) {
         await cccCalculationContract.setTicketHolders(
-          holders,
-          amounts,
+          holders.slice(i, i + pageSize),
+          amounts.slice(i, i + pageSize),
           i
         );
         console.log("set", i);
       };
-      // for (let i = 0; i < holders.length; i++) {
+      // for (let i = 0; i < 10; i++) {
       //   console.log(await cccCalculationContract.ticketsOf(i));
       // };
     });
@@ -84,24 +84,31 @@ describe('CCCRaffleCalculation', () => {
   describe('calculateAllResults', async () => {
     it('emits SetResult event', async () => {
       const ticketPrice = await cccCalculationContract.ticketPrice();
-      // const tx = await cccCalculationContract.calculateAllResults(
-      //   slotSize,
-      //   offsetInSlot,
-      //   lastTargetIndex,
-      //   totalTickets
-      // );
-      // const receipt = await tx.wait();
-      // const event1 = receipt.events?.filter((x) => {return x.logIndex == 0});
-      // console.log(event1);
-      await expect(cccCalculationContract.calculateAllResults(
-        slotSize,
-        offsetInSlot,
-        lastTargetIndex,
-        holders.length,
-      )).to.emit(cccCalculationContract, 'SetResult')
-        .withArgs(account1.address, 1, ticketPrice.mul(1))
-        .to.emit(cccCalculationContract, 'SetResult')
-        .withArgs(account2.address, 5, ticketPrice.mul(5));
+      let currTotal = 0;
+      for (let i = 0; i < holders.length; i += pageSize) {
+        const tx = await cccCalculationContract.calculateAllResults(
+          slotSize,
+          offsetInSlot,
+          lastTargetIndex,
+          i,
+          i + pageSize,
+          currTotal
+        );
+        // const receipt = await tx.wait();
+        // const event1 = receipt.events?.filter((x) => {return x.logIndex == 0});
+        // console.log(event1);
+        for (let j = i; j < i + pageSize; j++) {
+          currTotal += amounts[j];
+        }
+        console.log("calc", i, currTotal);
+        if (i == 0) {
+          expect(tx)
+            .to.emit(cccCalculationContract, 'SetResult')
+            .withArgs(account1.address, 1, ticketPrice.mul(1))
+            .to.emit(cccCalculationContract, 'SetResult')
+            .withArgs(account2.address, 5, ticketPrice.mul(5));
+        };
+      };
     });
   });
 
@@ -156,7 +163,7 @@ describe('CCCRaffleCalculation', () => {
         );
         console.log(hashToEncode, i);
       };
-    });
+    }).timeout(5000000);
   });
 
   describe('getResultHash', async () => {
@@ -169,6 +176,6 @@ describe('CCCRaffleCalculation', () => {
         );
         console.log(hashToEncode, i);
       };
-    });
+    }).timeout(5000000);
   });
 });
