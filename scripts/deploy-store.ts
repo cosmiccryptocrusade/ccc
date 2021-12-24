@@ -32,8 +32,8 @@ function delay(ms: number) {
 
 main()
   .then(async (deployedData) => {
-    await delay(80000);
-    await verify(deployedData.CCCStore); //Verify the master contract
+    // await delay(80000);
+    // await verify(deployedData.CCCStore); //Verify the master contract
   
     process.exit(0);
   })

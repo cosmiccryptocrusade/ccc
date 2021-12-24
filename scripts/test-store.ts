@@ -1,7 +1,5 @@
 import { ethers } from 'hardhat';
 
-const factoryAddress = '0xcE2E1BB06E3Db7F56845c31cacCAecBAAc235903';
-const passAddress = '0x21c930A81AA1a52DAdcC733eE1D95125cE75239A';
 const storeAddress = '0x440f19d26c1BB89a7183fac767E016fd179d33Ed';
 
 const main: () => Promise<any> = async () => {
@@ -9,30 +7,35 @@ const main: () => Promise<any> = async () => {
   console.log('init contracts with the account:', deployer.address);
 
   const Store = await ethers.getContractFactory('CCCStore');
-  const Pass = await ethers.getContractFactory('CCCPass');
-  const Factory = await ethers.getContractFactory('CCCFactory');
+  
 
   const cccStoreContract = await Store.attach(storeAddress);
-  const passContract = await Pass.attach(passAddress);
-  const cccFactoryContract = await Factory.attach(factoryAddress);
-
-  //link em up
-  await cccFactoryContract.setCCCStore(cccStoreContract.address);
-  await cccStoreContract.setCCCFactory(cccFactoryContract.address);
-  await cccStoreContract.setPass(passContract.address);
-  await passContract.setStore(cccStoreContract.address);
-
+ 
   const currentBlockNum = await ethers.provider.getBlockNumber();
   const currentBlock = await ethers.provider.getBlock(currentBlockNum);
   let currentTimestamp = currentBlock.timestamp;
-  await passContract.setClaimUntil(currentTimestamp + 360000);
-  await passContract.unpause();
 
-  let openingHours = 0;
-  openingHours = await getCurrentTimestamp();
-  await cccStoreContract.setOpeningHours(openingHours);
+  //premint
+  // const preMintAddress = ["0x513ab7aa66c04ee36b0cce970ebb70e97fa6c5c4","0xe631bd4BBDb8c618b4E6a111D7907fC399c0c890"]
+  // await cccStoreContract.preMintCCC(preMintAddress);
 
-  console.log('Completed init actions');
+  // console.log('Completed premint actions');
+
+  //mintWithPass
+  // await cccStoreContract.mintWithPass(3,
+  //   3,
+  //   1,
+  //   27,
+  //   "0xf1240fffe70f5086b1d68121b0632919d387a8bb5221a841615ef0cebf5ce039",
+  //   "0x4ded4ff5edcd48a8a378e63091d1bbf8e26ceae945334f9017c275dfdb31c0b7",{value:250000000000000});
+
+  // console.log('Completed premint actions');
+  
+  //Call Chainlink
+  // await cccStoreContract.getRandomNumber();
+
+  let shuffleNumber = await cccStoreContract.shuffleNumber();
+  console.log("shuffleNumber", shuffleNumber);
 };
 
 const getCurrentTimestamp = async () => {
