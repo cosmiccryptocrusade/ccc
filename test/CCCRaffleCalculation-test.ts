@@ -8,11 +8,19 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
 import { BigNumber } from '@ethersproject/bignumber';
 import runRaffleData from '../test/data/run-raffle-test-data.json';
+import { Result } from 'ethers/lib/utils';
+import { string } from 'hardhat/internal/core/params/argumentTypes';
+import * as fs from 'fs';
 
 chai.use(solidity);
 const { expect } = chai;
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+interface IResultJson {
+  holders: Array<string>,
+  amount: Array<number>,
+}
 
 describe('CCCRaffleCalculation', () => {
   let [deployer, account1, account2]: SignerWithAddress[] = [];
@@ -41,10 +49,10 @@ describe('CCCRaffleCalculation', () => {
     maxCCC = runRaffleData.maxCCC;
     preMintedCCC = runRaffleData.preMintedCCC;
     newlyMintedCCCWithPass = runRaffleData.newlyMintedCCCWithPass;
-    holders = runRaffleData.holders//.slice(0, 10);
-    amounts = runRaffleData.amounts//.slice(0, 10);
-    // newlyMintedCCCWithPass = maxCCC - preMintedCCC - 10;
-    pageSize = 250;
+    holders = runRaffleData.holders.slice(0, 10);
+    amounts = runRaffleData.amounts.slice(0, 10);
+    newlyMintedCCCWithPass = maxCCC - preMintedCCC - 10;
+    pageSize = 3;
     totalTickets = amounts.reduce((a, b) => a + b, 0);
   });
 
@@ -83,20 +91,35 @@ describe('CCCRaffleCalculation', () => {
 
   describe('calculateAllResults', async () => {
     it('emits SetResult event', async () => {
+      const minimalABI = [
+        "address",
+        "uint256",
+        "uint256"
+      ]
       const ticketPrice = await cccCalculationContract.ticketPrice();
       let currTotal = 0;
+      const decodedSetResultArray: Result[] = [];
+      const abiCoder = new ethers.utils.AbiCoder();
+      
       for (let i = 0; i < holders.length; i += pageSize) {
         const tx = await cccCalculationContract.calculateAllResults(
           slotSize,
           offsetInSlot,
           lastTargetIndex,
           i,
-          i + pageSize,
+          Math.min(i + pageSize, holders.length),
           currTotal
         );
-        // const receipt = await tx.wait();
-        // const event1 = receipt.events?.filter((x) => {return x.logIndex == 0});
-        // console.log(event1);
+        const receipt = await tx.wait();
+        const setResultEventArray = receipt.events?.filter((x) => {return x.event == "SetResult"});
+        console.log("event1 -- ", setResultEventArray?setResultEventArray[0]:'No event');
+        
+        setResultEventArray?.map(
+          (event) => {
+            decodedSetResultArray.push(abiCoder.decode(minimalABI, event?event["data"]:""));
+          }
+        )
+        console.log("event -- ", decodedSetResultArray);
         for (let j = i; j < i + pageSize; j++) {
           currTotal += amounts[j];
         }
@@ -108,7 +131,21 @@ describe('CCCRaffleCalculation', () => {
             .to.emit(cccCalculationContract, 'SetResult')
             .withArgs(account2.address, 5, ticketPrice.mul(5));
         };
+        //
       };
+
+      const resultJson:IResultJson={
+        holders: [],
+        amount: []
+      };
+      // store the decoded result into a result file
+      decodedSetResultArray.map(
+        (result:Result) => {
+          resultJson.holders.push(result[0])
+          resultJson.amount.push((result[1]).toNumber())
+        }
+      );
+      fs.writeFileSync( "result.json", JSON.stringify(resultJson))
     });
   });
 
