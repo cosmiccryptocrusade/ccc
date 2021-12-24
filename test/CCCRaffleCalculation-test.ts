@@ -19,7 +19,8 @@ const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 interface IResultJson {
   holders: Array<string>,
-  amount: Array<number>,
+  amounts: Array<number>,
+  raffleNumber: number
 }
 
 describe('CCCRaffleCalculation', () => {
@@ -39,6 +40,7 @@ describe('CCCRaffleCalculation', () => {
   let holders: string[];
   let amounts: number[];
   let pageSize = 0;
+  let raffleNumber = 0;
 
   before(async () => {
     [deployer, account1, account2] = await ethers.getSigners();
@@ -49,10 +51,11 @@ describe('CCCRaffleCalculation', () => {
     maxCCC = runRaffleData.maxCCC;
     preMintedCCC = runRaffleData.preMintedCCC;
     newlyMintedCCCWithPass = runRaffleData.newlyMintedCCCWithPass;
-    holders = runRaffleData.holders.slice(0, 10);
-    amounts = runRaffleData.amounts.slice(0, 10);
-    newlyMintedCCCWithPass = maxCCC - preMintedCCC - 10;
-    pageSize = 3;
+    holders = runRaffleData.holders//.slice(0, 10);
+    amounts = runRaffleData.amounts//.slice(0, 10);
+    // newlyMintedCCCWithPass = maxCCC - preMintedCCC - 10;
+    pageSize = 250;
+    raffleNumber = 10;
     totalTickets = amounts.reduce((a, b) => a + b, 0);
   });
 
@@ -112,14 +115,14 @@ describe('CCCRaffleCalculation', () => {
         );
         const receipt = await tx.wait();
         const setResultEventArray = receipt.events?.filter((x) => {return x.event == "SetResult"});
-        console.log("event1 -- ", setResultEventArray?setResultEventArray[0]:'No event');
+        // console.log("event1 -- ", setResultEventArray?setResultEventArray[0]:'No event');
         
         setResultEventArray?.map(
           (event) => {
             decodedSetResultArray.push(abiCoder.decode(minimalABI, event?event["data"]:""));
           }
         )
-        console.log("event -- ", decodedSetResultArray);
+        // console.log("event -- ", decodedSetResultArray);
         for (let j = i; j < i + pageSize; j++) {
           currTotal += amounts[j];
         }
@@ -131,21 +134,21 @@ describe('CCCRaffleCalculation', () => {
             .to.emit(cccCalculationContract, 'SetResult')
             .withArgs(account2.address, 5, ticketPrice.mul(5));
         };
-        //
       };
 
-      const resultJson:IResultJson={
+      const resultJson: IResultJson = {
         holders: [],
-        amount: []
+        amounts: [],
+        raffleNumber: raffleNumber
       };
       // store the decoded result into a result file
       decodedSetResultArray.map(
         (result:Result) => {
           resultJson.holders.push(result[0])
-          resultJson.amount.push((result[1]).toNumber())
+          resultJson.amounts.push((result[1]).toNumber())
         }
       );
-      fs.writeFileSync( "result.json", JSON.stringify(resultJson))
+      fs.writeFileSync( "test/data/raffle-results-test-data.json", JSON.stringify(resultJson))
     });
   });
 

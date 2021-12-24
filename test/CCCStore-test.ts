@@ -865,8 +865,8 @@ describe('CCCStore', () => {
 
     it("fails if error - large", async () => {
       const pageSize = 250;
-      const holders = raffleResultsData.holders.slice(0, 500);
-      const amounts = raffleResultsData.amounts.slice(0, 500);
+      const holders = raffleResultsData.holders.slice(0, 10000);
+      const amounts = raffleResultsData.amounts.slice(0, 10000);
       for (let i = 0; i < holders.length; i += pageSize) {
         await cccStoreContract.setRaffleResults(
           holders.slice(i, i + pageSize),
