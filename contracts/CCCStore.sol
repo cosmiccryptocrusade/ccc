@@ -147,6 +147,11 @@ contract CCCStore is Ownable, VRFConsumerBase {
         emit SetCCCFactory(address(_cccFactory));
     }
 
+    function setRaffleContract(address _cccRaffle) external onlyOwner {
+        cccRaffle = _cccRaffle;
+        emit SetCCCRaffle(_cccRaffle);
+    }
+
     function setTicketPrice(uint256 _price) external onlyOwner {
         ticketPrice = _price * 0.0000001 ether;
         emit SetTicketPrice(_price);
@@ -341,12 +346,6 @@ contract CCCStore is Ownable, VRFConsumerBase {
     function setChainlinkFee(uint256 _fee) external onlyOwner {
         fee = _fee;
         emit SetChainlinkFee(_fee);
-    }
-
-
-    function setRaffleContract(address _cccRaffle) external onlyOwner {
-        cccRaffle = _cccRaffle;
-        emit SetCCCRaffle(_cccRaffle);
     }
 
     // Fisher-Yates shuffle to obtained shuffled array of 0 to 9999. token id #n will be picture shuffledArray[n]

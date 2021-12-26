@@ -21,7 +21,7 @@ interface IResultJson {
   holders: Array<string>,
   amounts: Array<number>,
   raffleNumber: number
-}
+};
 
 describe('CCCRaffleCalculation', () => {
   let [deployer, account1, account2]: SignerWithAddress[] = [];
@@ -144,11 +144,11 @@ describe('CCCRaffleCalculation', () => {
       // store the decoded result into a result file
       decodedSetResultArray.map(
         (result:Result) => {
-          resultJson.holders.push(result[0])
-          resultJson.amounts.push((result[1]).toNumber())
+          resultJson.holders.push(result[0]);
+          resultJson.amounts.push((result[1]).toNumber());
         }
       );
-      fs.writeFileSync( "test/data/raffle-results-test-data.json", JSON.stringify(resultJson))
+      fs.writeFileSync("test/data/raffle-results-test-data.json", JSON.stringify(resultJson));
     });
   });
 
