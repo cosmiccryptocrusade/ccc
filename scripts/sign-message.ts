@@ -8,6 +8,7 @@ interface PassReq {
   rSig: string;
   sSig: string;
   amount: number;
+  passType: number;
 }
 
 interface DomainType {
@@ -40,16 +41,18 @@ const main = async () => {
   console.log('Signing message with the account:', owner.address);
 
   await Promise.all(
-    Object.entries(PassReceiverData.receiverData).map(
-      async ([receiver, amount ]) => {
-        console.log(receiver, amount)
+    Object.values(PassReceiverData.receiverData).map(
+      async (receiverData) => {
+        let receiver = receiverData.receiver, amount = receiverData.amount, passType = receiverData.passType;
+        console.log(receiver, amount, passType)
         const signature = await signTypedData({
           signer: owner,
           domain: PassReceiverData.domain,
           types: PassReceiverData.types,
           data: {
-            receiver:"0x6538D003200391b0ff22dB54419d1a2386CA7d9c",
-            amount:3,
+            receiver:receiver,
+            amount:amount,
+            passType:passType
           },
         });
 
@@ -62,6 +65,7 @@ const main = async () => {
           sSig: s,
           vSig: v,
           amount,
+          passType,
         };
       }
     )

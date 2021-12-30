@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
@@ -9,7 +9,6 @@ contract CCCRaffleCalculation is Ownable, VRFConsumerBase {
         Chainlink VRF
      */
     bytes32 internal keyHash;
-    bytes hashToEncode;
     uint256 internal fee;
     uint256 public raffleNumber;
 
@@ -30,10 +29,10 @@ contract CCCRaffleCalculation is Ownable, VRFConsumerBase {
 
     constructor()
         VRFConsumerBase(
-            0x3d2341ADb2D31f1c5530cDC622016af293177AE0, // VRF Coordinator
-            0xb0897686c545045aFc77CF20eC7A532E3120E0F1  // LINK Token
+            0x8C7382F9D8f56b33781fE506E897a4F1e2d17255, // VRF Coordinator
+            0x326C977E6efc84E512bB9C30f76E30c160eD06FB  // LINK Token
         ) {
-        keyHash = 0xf86195cf7690c55907b2b611ebb7343a6f649bff128701cc542f0569e2c549da;
+        keyHash = 0x6e75b569a01ef56d18cab6a8e71e6600d6ce853834d4a5748b720d06f878b3a4;
         fee = 0.0001 * 10 ** 18;
     }
 
@@ -65,9 +64,9 @@ contract CCCRaffleCalculation is Ownable, VRFConsumerBase {
     
     /// @dev set ticket holders in batches to avoid hitting the gas block limit
     function setTicketHolders(address[] memory _holders, uint256[] memory _amounts, uint256 startIndex) external onlyOwner {
-        for (uint256 i = startIndex; i < _holders.length; i++) {
-            ticketsOf[i].amount = _amounts[i];
-            ticketsOf[i].holder = _holders[i];
+        for (uint256 i = 0; i < _holders.length; i++) {
+            ticketsOf[startIndex + i].amount = _amounts[i];
+            ticketsOf[startIndex + i].holder = _holders[i];
         }
     }
 
@@ -156,20 +155,17 @@ contract CCCRaffleCalculation is Ownable, VRFConsumerBase {
         }
     }
 
-    // TODO: can we store resultOf or/and the hash of resultOf here as well?
-    // so that we can easily verify on Store that we did not make a mistake in setRaffleResults()
-    // similarly, we can store the hash of ticketsOf on Store so that we can verify
-    // setTicketHolders() is ran here correctly
     function calculateAllResults(
         uint256 slotSize, 
         uint256 offsetInSlot, 
         uint256 lastTargetIndex, 
-        uint256 noOfHolders) 
+        uint256 startIndex,
+        uint256 endIndex,
+        uint256 currTotal)
         external 
         {
         require(raffleNumber > 0, "Invalid Raffle Number");
-        uint256 currTotal = 0;
-        for (uint256 i = 0; i < noOfHolders; i++) {
+        for (uint256 i = startIndex; i < endIndex; i++) {
             ticket memory myTicket = ticketsOf[i];
 
             uint256 validTicketAmount = calculateValidTicketAmount(
@@ -180,19 +176,29 @@ contract CCCRaffleCalculation is Ownable, VRFConsumerBase {
                 lastTargetIndex
             );
             currTotal += myTicket.amount;
+            resultOf[myTicket.holder].validTicketAmount = validTicketAmount;
 
             uint256 remainingTickets = myTicket.amount - validTicketAmount;
             uint256 changes = remainingTickets * ticketPrice;
             emit SetResult(myTicket.holder, validTicketAmount, changes);
-            hashToEncode = abi.encodePacked(myTicket.holder,validTicketAmount,hashToEncode);
         }
     }
 
-    function getResultHash() 
-        external 
-        view 
-        returns (bytes32 resultHash) 
-        {
+    /// @dev The ticket hash can be checked in batches, with hashToEncode as the prev result hash.
+    /// This is used to verify that the tickets copied over to L2 matches.
+    function getTicketHash(uint256 startIndex, uint256 endIndex, bytes memory hashToEncode) external view returns (bytes32 ticketHash) {
+        for (uint256 i = startIndex; i < endIndex; i++) {
+            hashToEncode = abi.encodePacked(ticketsOf[i].holder, ticketsOf[i].amount, hashToEncode);
+        }
+        return keccak256(abi.encodePacked(hashToEncode));
+    }
+
+    /// @dev The result hash can be checked in batches, with hashToEncode as the prev result hash.
+    /// This is used to verify that the results copied over from L2 matches.
+    function getResultHash(address[] memory _holders, bytes memory hashToEncode) external view returns (bytes32 resultHash) {
+        for (uint256 i = 0; i < _holders.length; i++) {
+            hashToEncode = abi.encodePacked(_holders[i], resultOf[_holders[i]].validTicketAmount, hashToEncode);
+        }
         return keccak256(abi.encodePacked(hashToEncode));
     }
 }

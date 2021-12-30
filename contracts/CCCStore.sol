@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
@@ -108,11 +108,11 @@ contract CCCStore is Ownable, VRFConsumerBase {
 
     constructor()
         VRFConsumerBase(
-            0xf0d54349aDdcf704F77AE15b96510dEA15cb7952, // VRF Coordinator
-            0x514910771AF9Ca656af840dff83E8264EcF986CA  // LINK Token
+            0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B, // VRF Coordinator
+            0x01BE23585060835E02B77ef475b0Cc51aA1e0709  // LINK Token
         ) {
-        keyHash = 0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445;
-        fee = 2 * 10 ** 18;
+        keyHash = 0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311;
+        fee = 0.1 * 10 ** 18;
     }
 
     modifier whenVIPOpened() {
@@ -145,6 +145,11 @@ contract CCCStore is Ownable, VRFConsumerBase {
     function setCCCFactory(Factory _cccFactory) external onlyOwner {
         cccFactory = _cccFactory;
         emit SetCCCFactory(address(_cccFactory));
+    }
+
+    function setRaffleContract(address _cccRaffle) external onlyOwner {
+        cccRaffle = _cccRaffle;
+        emit SetCCCRaffle(_cccRaffle);
     }
 
     function setTicketPrice(uint256 _price) external onlyOwner {
@@ -271,12 +276,11 @@ contract CCCStore is Ownable, VRFConsumerBase {
 
     /// @dev The result hash can be checked in batches, with hashToEncode as the prev result hash.
     /// This is used to verify that the results copied over from L2 matches.
-    function getResultHash(address[] memory _holders) external view returns (bytes32 resultHash) {
-        bytes32 hashToEncode = "";
+    function getResultHash(address[] memory _holders, bytes memory hashToEncode) external view returns (bytes32 resultHash) {
         for (uint256 i = 0; i < _holders.length; i++) {
-            hashToEncode = keccak256(abi.encodePacked(_holders[i], resultOf[_holders[i]].validTicketAmount, hashToEncode));
+            hashToEncode = abi.encodePacked(_holders[i], resultOf[_holders[i]].validTicketAmount, hashToEncode);
         }
-        return hashToEncode;
+        return keccak256(abi.encodePacked(hashToEncode));
     }
 
     function mintCCC() external {
@@ -342,12 +346,6 @@ contract CCCStore is Ownable, VRFConsumerBase {
     function setChainlinkFee(uint256 _fee) external onlyOwner {
         fee = _fee;
         emit SetChainlinkFee(_fee);
-    }
-
-
-    function setRaffleContract(address _cccRaffle) external onlyOwner {
-        cccRaffle = _cccRaffle;
-        emit SetCCCRaffle(_cccRaffle);
     }
 
     // Fisher-Yates shuffle to obtained shuffled array of 0 to 9999. token id #n will be picture shuffledArray[n]
