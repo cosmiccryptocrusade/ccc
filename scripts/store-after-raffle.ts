@@ -3,15 +3,15 @@ import { BigNumber } from '@ethersproject/bignumber';
 import * as fs from 'fs';
 import raffleResultsData from '../data/raffle-results-data.json';
 
-const storeAddress = '0x8837E6100912Bdf52B12A24807800e6BD3BaC506';
+const storeAddress = '0xC0A30Deb5DDD84bcB898163C161d46081F4E8422';
 
-interface IRunRaffleJson {
-  holders: Array<string>,
-  amounts: Array<number>,
-  maxCCC: number,
-  preMintedCCC: number,
-  newlyMintedCCCWithPass: number
-}
+// interface IRunRaffleJson {
+//   holders: Array<string>,
+//   amounts: Array<number>,
+//   maxCCC: number,
+//   preMintedCCC: number,
+//   newlyMintedCCCWithPass: number
+// }
 
 const main: () => Promise<any> = async () => {
   const [deployer, premint1, premint2, vip1, vip2, public1, public2] = await ethers.getSigners();
@@ -43,6 +43,17 @@ const main: () => Promise<any> = async () => {
   // await cccStoreContract.connect(public2).mintCCC();
   // console.log("Completed mintCCC", public1.address, public2.address);
 
+  // mintCCC
+  // let openingHours = await getCurrentTimestamp();
+  // openingHours -= 3600 * 9;
+  // await cccStoreContract.setOpeningHours(openingHours);
+  // let currOpeningHours = await cccStoreContract.openingHours();
+  // currOpeningHours = new Date(currOpeningHours * 1000);
+  // console.log(currOpeningHours);
+  // await cccStoreContract.connect(public1).mintCCC(3, {value: ticketPrice.mul(3)});
+  // await cccStoreContract.connect(public2).mintCCC(30, {value: ticketPrice.mul(31)});
+  // console.log("Completed mintCCC", public1.address, public2.address);
+
   // getRandomNumber
   // await cccStoreContract.getRandomNumber();
   // console.log("Completed getRandomNumber");
@@ -55,6 +66,11 @@ const main: () => Promise<any> = async () => {
   let shuffledArray = await cccStoreContract.shuffle(10000);
   shuffledArray = shuffledArray.map((x: any) => {return x.toNumber()});
   fs.writeFileSync("data/shuffle-data.json", JSON.stringify(shuffledArray));
+
+  // withdraw
+  const amount = 0.00576 * 10**18;
+  await cccStoreContract.withdraw(deployer.address, amount);
+  console.log("withdraw", amount / 10**18);
 };
 
 const getCurrentTimestamp = async () => {

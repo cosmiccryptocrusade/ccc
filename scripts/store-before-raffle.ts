@@ -1,15 +1,15 @@
 import { ethers } from 'hardhat';
 import * as fs from 'fs';
 
-const storeAddress = '0x8837E6100912Bdf52B12A24807800e6BD3BaC506';
+const storeAddress = '0xC0A30Deb5DDD84bcB898163C161d46081F4E8422';
 
-interface IRunRaffleJson {
-  holders: Array<string>,
-  amounts: Array<number>,
-  maxCCC: number,
-  preMintedCCC: number,
-  newlyMintedCCCWithPass: number
-}
+// interface IRunRaffleJson {
+//   holders: Array<string>,
+//   amounts: Array<number>,
+//   maxCCC: number,
+//   preMintedCCC: number,
+//   newlyMintedCCCWithPass: number
+// }
 
 const main: () => Promise<any> = async () => {
   const [deployer, premint1, premint2, vip1, vip2, public1, public2] = await ethers.getSigners();
@@ -27,21 +27,21 @@ const main: () => Promise<any> = async () => {
 
   // mintWithPass
   // await cccStoreContract.connect(vip1).mintWithPass(
-  //   3,
+  //   6,
   //   3,
   //   0,
   //   27,
-  //   "0x44d9a54ea73ebc59fceffb42dc9e24eb51be262280e291f58c7a3b2d9c38655b",
-  //   "0x239e7d90eeab05346df8b4d012aa38602bbd349d118c12940455d3d57dab88d9",
+  //   "0x2a56c387d156402643e622fa41f3c1bc8b7c7716b2405f8ff2f7251088b50d2a",
+  //   "0x6008fcbbefdd8bc94b30b0110a7b3b33b45586169c3601fc079669579bfb8e8c",
   //   {value:ticketPrice.mul(3)}
   // );
   // await cccStoreContract.connect(vip2).mintWithPass(
-  //   3,
+  //   6,
   //   3,
   //   1,
-  //   28,
-  //   "0xf95d366e5125fe7ea8473e0ed7cfc8274b2d6337322048b2672b5535145afc61",
-  //   "0x5db91a32e34805f2fceb4e80eda65a5d493606f782cddfe4bbdf7f4f4457e088",
+  //   27,
+  //   "0xaab2fae16c572288ac3d9afd3172ca100596c0950d9c44a33e2453576e782436",
+  //   "0x28fe89f9acbb8531f8cd834570db9ed16a60111a229abee059ec0aa3bbce10a7",
   //   {value:ticketPrice.mul(3)}
   // );
   // console.log('Completed mintWithPass', vip1.address, vip2.address);
@@ -59,22 +59,22 @@ const main: () => Promise<any> = async () => {
   // console.log('Completed takingTickets', public1.address, public2.address);
 
   // output run-raffle-data.json
-  const maxCCC = await cccStoreContract.maxCCC();
-  const preMintedCCC = await cccStoreContract.preMintedCCC();
-  const newlyMintedCCCWithPass = await cccStoreContract.newlyMintedCCCWithPass();
-  const runRaffleJson: IRunRaffleJson = {
-    holders: [public1.address, public2.address],
-    amounts: [2, 10000],
-    maxCCC: maxCCC.toNumber(),
-    preMintedCCC: preMintedCCC.toNumber(),
-    newlyMintedCCCWithPass: newlyMintedCCCWithPass.toNumber()
-  };
-  fs.writeFileSync("data/run-raffle-data.json", JSON.stringify(runRaffleJson));
+  // const maxCCC = await cccStoreContract.maxCCC();
+  // const preMintedCCC = await cccStoreContract.preMintedCCC();
+  // const newlyMintedCCCWithPass = await cccStoreContract.newlyMintedCCCWithPass();
+  // const runRaffleJson: IRunRaffleJson = {
+  //   holders: [public1.address, public2.address],
+  //   amounts: [2, 10000],
+  //   maxCCC: maxCCC.toNumber(),
+  //   preMintedCCC: preMintedCCC.toNumber(),
+  //   newlyMintedCCCWithPass: newlyMintedCCCWithPass.toNumber()
+  // };
+  // fs.writeFileSync("data/run-raffle-data.json", JSON.stringify(runRaffleJson));
 
   // getTicketHash
-  let hashToEncode = "0x00000000000000000000000000000000";
-  hashToEncode = await cccStoreContract.getTicketHash(runRaffleJson.holders, hashToEncode);
-  console.log("getTicketHash", hashToEncode);
+  // let hashToEncode = "0x00000000000000000000000000000000";
+  // hashToEncode = await cccStoreContract.getTicketHash(runRaffleJson.holders, hashToEncode);
+  // console.log("getTicketHash", hashToEncode);
 };
 
 const getCurrentTimestamp = async () => {
