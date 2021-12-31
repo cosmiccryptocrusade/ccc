@@ -52,6 +52,10 @@ contract CCCStore is Ownable, VRFConsumerBase {
     uint256 public newlyMintedCCCWithPass = 0;
     mapping(address => uint256) public mintedCCCOf;
 
+    // public mint
+    uint256 public newlyMintedCCCPublic = 0;
+    mapping(address => uint256) public publicMintedCCCOf;
+
     /**
         Scheduling
      */
@@ -101,7 +105,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
         uint256 validTicketAmount,
         uint256 changes
     );
-    event MintCCC(address account, uint256 mintRequestAmount);
+    event MintCCC(address account, uint256 mintRequestAmount, uint256 changes);
     event Withdraw(address to);
     event SetChainlinkFee(uint256);
     event SetChainlinkKeyHash(bytes32);
@@ -224,103 +228,127 @@ contract CCCStore is Ownable, VRFConsumerBase {
         }
     }
 
-    function takingTickets(uint256 _amountToMint) external payable whenOpened {
-        require(_amountToMint > 0, "Need ticket more than 0");
-
-        ticket storage myTicket = ticketsOf[msg.sender];
-        require(myTicket.amount == 0, "Already registered");
-
+    function mintCCC(uint256 _amountToMint) external payable whenOpened {
+        require(_amountToMint <= maxMintPerTx, "mint amount exceeds maximum");
+        require(_amountToMint > 0, "Need to mint more than 0");
         uint256 totalPrice = ticketPrice * _amountToMint;
         require(totalPrice <= msg.value, "Not enough money");
+        
+        uint256 publicMintedCCC = publicMintedCCCOf[msg.sender];
 
-        myTicket.index = totalTickets;
-        myTicket.amount = _amountToMint;
+        for (uint256 i = 0; i < _amountToMint; i += 1) {
+            cccFactory.mint(msg.sender);
+        }
 
-        totalTickets = totalTickets + _amountToMint;
+        publicMintedCCCOf[msg.sender] = publicMintedCCC + _amountToMint;
+        newlyMintedCCCPublic += _amountToMint;
 
         // Refund changes
         uint256 changes = msg.value - totalPrice;
-        emit TakingTickets(msg.sender, _amountToMint, changes);
+        emit MintCCC(msg.sender, _amountToMint, changes);
 
         if (changes > 0) {
             payable(msg.sender).transfer(changes);
         }
     }
 
-    function setRaffleNumber(uint256 _raffleNumber) external onlyOwner {
-        require(_raffleNumber > 0);
-        require(raffleNumber == 0);
-        raffleNumber = _raffleNumber;
-    }
-
-    /// @dev The raffle result can be set in batches.
-    function setRaffleResults(
-        address[] memory _holders,
-        uint256[] memory _amounts,
-        bool _calculationExecuted
-        ) external onlyOwner {
-        for (uint256 i = 0; i < _holders.length; i++) {
-            resultOf[_holders[i]].validTicketAmount = _amounts[i];
-        }
-        calculationExecuted = _calculationExecuted;
-    }
-
-    /// @dev The ticket hash can be checked in batches, with hashToEncode as the prev result hash.
-    /// This is used to verify that the tickets copied over to L2 matches.
-    function getTicketHash(address[] memory _holders, bytes memory hashToEncode) external view returns (bytes32 ticketHash) {
-        for (uint256 i = 0; i < _holders.length; i++) {
-            hashToEncode = abi.encodePacked(_holders[i], ticketsOf[_holders[i]].amount, hashToEncode);
-        }
-        return keccak256(abi.encodePacked(hashToEncode));
-    }
-
-    /// @dev The result hash can be checked in batches, with hashToEncode as the prev result hash.
-    /// This is used to verify that the results copied over from L2 matches.
-    function getResultHash(address[] memory _holders, bytes memory hashToEncode) external view returns (bytes32 resultHash) {
-        for (uint256 i = 0; i < _holders.length; i++) {
-            hashToEncode = abi.encodePacked(_holders[i], resultOf[_holders[i]].validTicketAmount, hashToEncode);
-        }
-        return keccak256(abi.encodePacked(hashToEncode));
-    }
-
-    function mintCCC() external {
-        require(calculationExecuted, "Results not set");
-        
-        result storage myResult = resultOf[msg.sender];
-        ticket memory myTicket = ticketsOf[msg.sender];
-        uint256 claims = (myTicket.amount - myResult.validTicketAmount) * ticketPrice;
-        
-        
-        require(myResult.validTicketAmount > 0, "No valid tickets");
-
-        uint256 mintRequestAmount = 0;
-
-        if (myResult.validTicketAmount > maxMintPerTx) {
-            mintRequestAmount = maxMintPerTx;
-            myResult.validTicketAmount -= maxMintPerTx;
-        } else {
-            mintRequestAmount = myResult.validTicketAmount;
-            myResult.validTicketAmount = 0;
-        }
-
-        for (uint256 i = 0; i < mintRequestAmount; i += 1) {
-            cccFactory.mint(msg.sender);
-        }
-        
-        if (!myResult.claimed) {
-            myResult.claimed = true;
-            claimRefund(claims);
-        }
-        
-        emit MintCCC(msg.sender, mintRequestAmount);
-       
-    }
-
-    function claimRefund(uint256 claims) private {
-        if (claims > 0) {
-            payable(msg.sender).transfer(claims);
-        }   
-    }
+//    function takingTickets(uint256 _amountToMint) external payable whenOpened {
+//        require(_amountToMint > 0, "Need ticket more than 0");
+//
+//        ticket storage myTicket = ticketsOf[msg.sender];
+//        require(myTicket.amount == 0, "Already registered");
+//
+//        uint256 totalPrice = ticketPrice * _amountToMint;
+//        require(totalPrice <= msg.value, "Not enough money");
+//
+//        myTicket.index = totalTickets;
+//        myTicket.amount = _amountToMint;
+//
+//        totalTickets = totalTickets + _amountToMint;
+//
+//        // Refund changes
+//        uint256 changes = msg.value - totalPrice;
+//        emit TakingTickets(msg.sender, _amountToMint, changes);
+//
+//        if (changes > 0) {
+//            payable(msg.sender).transfer(changes);
+//        }
+//    }
+//
+//    function setRaffleNumber(uint256 _raffleNumber) external onlyOwner {
+//        require(_raffleNumber > 0);
+//        require(raffleNumber == 0);
+//        raffleNumber = _raffleNumber;
+//    }
+//
+//    /// @dev The raffle result can be set in batches.
+//    function setRaffleResults(
+//        address[] memory _holders,
+//        uint256[] memory _amounts,
+//        bool _calculationExecuted
+//        ) external onlyOwner {
+//        for (uint256 i = 0; i < _holders.length; i++) {
+//            resultOf[_holders[i]].validTicketAmount = _amounts[i];
+//        }
+//        calculationExecuted = _calculationExecuted;
+//    }
+//
+//    /// @dev The ticket hash can be checked in batches, with hashToEncode as the prev result hash.
+//    /// This is used to verify that the tickets copied over to L2 matches.
+//    function getTicketHash(address[] memory _holders, bytes memory hashToEncode) external view returns (bytes32 ticketHash) {
+//        for (uint256 i = 0; i < _holders.length; i++) {
+//            hashToEncode = abi.encodePacked(_holders[i], ticketsOf[_holders[i]].amount, hashToEncode);
+//        }
+//        return keccak256(abi.encodePacked(hashToEncode));
+//    }
+//
+//    /// @dev The result hash can be checked in batches, with hashToEncode as the prev result hash.
+//    /// This is used to verify that the results copied over from L2 matches.
+//    function getResultHash(address[] memory _holders, bytes memory hashToEncode) external view returns (bytes32 resultHash) {
+//        for (uint256 i = 0; i < _holders.length; i++) {
+//            hashToEncode = abi.encodePacked(_holders[i], resultOf[_holders[i]].validTicketAmount, hashToEncode);
+//        }
+//        return keccak256(abi.encodePacked(hashToEncode));
+//    }
+//
+//    function mintCCC() external {
+//        require(calculationExecuted, "Results not set");
+//        
+//        result storage myResult = resultOf[msg.sender];
+//        ticket memory myTicket = ticketsOf[msg.sender];
+//        uint256 claims = (myTicket.amount - myResult.validTicketAmount) * ticketPrice;
+//        
+//        
+//        require(myResult.validTicketAmount > 0, "No valid tickets");
+//
+//        uint256 mintRequestAmount = 0;
+//
+//        if (myResult.validTicketAmount > maxMintPerTx) {
+//            mintRequestAmount = maxMintPerTx;
+//            myResult.validTicketAmount -= maxMintPerTx;
+//        } else {
+//            mintRequestAmount = myResult.validTicketAmount;
+//            myResult.validTicketAmount = 0;
+//        }
+//
+//        for (uint256 i = 0; i < mintRequestAmount; i += 1) {
+//            cccFactory.mint(msg.sender);
+//        }
+//        
+//        if (!myResult.claimed) {
+//            myResult.claimed = true;
+//            claimRefund(claims);
+//        }
+//        
+//        emit MintCCC(msg.sender, mintRequestAmount);
+//       
+//    }
+//
+//    function claimRefund(uint256 claims) private {
+//        if (claims > 0) {
+//            payable(msg.sender).transfer(claims);
+//        }   
+//    }
 
     /**
      * Requests randomness from chainlink
@@ -372,10 +400,10 @@ contract CCCStore is Ownable, VRFConsumerBase {
     // withdraw eth for sold CCC
     function withdraw(address payable _to, uint256 amount) external onlyOwner {
         require(_to != address(0), "receiver cant be empty address");
-        require(
-            maxCCC - preMintedCCC - newlyMintedCCCWithPass <= totalTickets,
-            "Not enough ethers are collected"
-        );
+        // require(
+        //     maxCCC - preMintedCCC - newlyMintedCCCWithPass <= totalTickets,
+        //     "Not enough ethers are collected"
+        // );
 
         // Send eth to designated receiver
         emit Withdraw(_to);
