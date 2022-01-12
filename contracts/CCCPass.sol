@@ -80,11 +80,11 @@ contract CCCPass is EIP712, Ownable {
         uint256 currentPassCount = currentPassType0Count;
 
         if (passType == 0) {
-            require(_passAmount - claimedType0Count[sender] - _amountToMint >= 0, "Not enough pass");
+            require(_passAmount - claimedType0Count[sender] >= _amountToMint, "Not enough pass");
             claimedType0Count[sender] += _amountToMint;
             currentPassType0Count += _amountToMint;
         } else if(passType == 1) {
-            require(_passAmount - claimedType1Count[sender] - _amountToMint >= 0, "Not enough pass");
+            require(_passAmount - claimedType1Count[sender] >= _amountToMint, "Not enough pass");
             claimedType1Count[sender] += _amountToMint;
             currentPassType1Count += _amountToMint;
             MAX_SUPPLY = MAX_SUPPLY_PASS_TYPE_1;

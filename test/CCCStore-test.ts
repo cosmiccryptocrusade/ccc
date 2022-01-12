@@ -23,7 +23,7 @@ const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
 const MAX_SUPPLY = 10000;
 const MAX_PRE_MINT_SUPPLY = 500;
 
-const MAX_MINT_PER_TX = 30;
+const MAX_MINT_PER_TX = 10;
 const TICKET_PRICE_IN_WEI = ethers.utils.parseEther('0.00008');
 const OPERATION_SECONDS_FOR_VIP = 3600 * 9;
 const OPERATION_SECONDS = 3600 * 24;
@@ -137,19 +137,8 @@ describe('CCCStore', () => {
         OPERATION_SECONDS
       );
       expect(await cccStoreContract.ticketPrice()).to.eq(TICKET_PRICE_IN_WEI);
-      expect(await cccStoreContract.totalTickets()).to.eq(0);
       expect(await cccStoreContract.maxMintPerTx()).to.eq(MAX_MINT_PER_TX);
-      expect(await cccStoreContract.raffleNumber()).to.eq(0);
       expect(await cccStoreContract.mintedCCCOf(deployer.address)).to.eq(0);
-
-      const ticket = await cccStoreContract.ticketsOf(deployer.address);
-      expect(ticket[0]).to.eq(0);
-      expect(ticket[1]).to.eq(0);
-
-      const result = await cccStoreContract.resultOf(deployer.address);
-      expect(result[0]).to.eq(0);
-      expect(result[1]).to.eq(false);
-
     });
   });
 
@@ -399,10 +388,6 @@ describe('CCCStore', () => {
 
   describe('mintWithPass', async () => {
     let openingHours = 0;
-    // openingHours = await getCurrentTimestamp();
-    // await cccStoreContract.setOpeningHours(openingHours);
-
-   
     const passType = 0;
 
     beforeEach(async () => {
@@ -445,16 +430,19 @@ describe('CCCStore', () => {
       );
     });
 
-    // it('fails if mint amount exceeds allowed quantity (pass qty)', async () => {
-    //   const receiver = account1;
+    it('fails if mint amount exceeds allowed quantity (pass qty)', async () => {
+      const receiver = account1;
+      const amount = 3;
+      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
 
-    //   await passContract.mint(receiver.address, 0);
-    //   expect(await passContract.balanceOf(receiver.address)).to.eq(1);
+      expect(await passContract.claimedType0Count(receiver.address)).to.eq(0);
+      await cccStoreContract.connect(receiver).mintWithPass(3, 1, passType, ...splitSig, {value: TICKET_PRICE_IN_WEI});
+      expect(await passContract.claimedType0Count(receiver.address)).to.eq(1);
 
-    //   await expect(
-    //     cccStoreContract.connect(receiver).mintWithPass(3 + 1)
-    //   ).to.be.revertedWith('Not enough Pass');
-    // });
+      await expect(
+        cccStoreContract.connect(receiver).mintWithPass(3, amount, passType, ...splitSig, {value: totalPrice})
+      ).to.be.reverted;
+    });
 
     it('fails if zero ether is sent', async () => {
       const receiver = account1;
@@ -733,418 +721,6 @@ describe('CCCStore', () => {
     });
   });
 
-//  describe('takingTickets', async () => {
-//    beforeEach(async () => {
-//      const openingHours = await getCurrentTimestamp();
-//      await cccStoreContract.setOpeningHours(openingHours);
-//      await ethers.provider.send('evm_increaseTime', [
-//        OPERATION_SECONDS_FOR_VIP + 1,
-//      ]);
-//      await ethers.provider.send('evm_mine', []);
-//    });
-//
-//    it('fails when store is not opened yet', async () => {
-//      const openingHours = await getCurrentTimestamp();
-//      await cccStoreContract.setOpeningHours(openingHours + 7 * 24 * 3600);
-//
-//      await expect(cccStoreContract.takingTickets(1)).to.be.revertedWith(
-//        'Store is not opened'
-//      );
-//    });
-//
-//    it('fails when store is opened only for VIP', async () => {
-//      const openingHours = await getCurrentTimestamp();
-//      await cccStoreContract.setOpeningHours(openingHours);
-//      await ethers.provider.send('evm_increaseTime', [
-//        OPERATION_SECONDS_FOR_VIP / 2,
-//      ]);
-//      await ethers.provider.send('evm_mine', []);
-//
-//      await expect(cccStoreContract.takingTickets(1)).to.be.revertedWith(
-//        'Store is not opened'
-//      );
-//    });
-//
-//    it('fails when store is closed', async () => {
-//      const openingHours = await getCurrentTimestamp();
-//      await cccStoreContract.setOpeningHours(openingHours);
-//      await ethers.provider.send('evm_increaseTime', [
-//        OPERATION_SECONDS_FOR_VIP + OPERATION_SECONDS + 1,
-//      ]);
-//      await ethers.provider.send('evm_mine', []);
-//
-//      await expect(cccStoreContract.takingTickets(1)).to.be.revertedWith(
-//        'Store is closed'
-//      );
-//    });
-//
-//    it('fails when requestedAmount is zero', async () => {
-//      await expect(cccStoreContract.takingTickets(0)).to.be.revertedWith(
-//        'Need ticket more than 0'
-//      );
-//    });
-//
-//    it('fails if user already has taken tickets', async () => {
-//      const amount = 1;
-//      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
-//      const taker = account1;
-//
-//      await expect(
-//        cccStoreContract
-//          .connect(taker)
-//          .takingTickets(amount, { value: totalPrice })
-//      ).not.to.be.reverted;
-//
-//      await expect(
-//        cccStoreContract
-//          .connect(taker)
-//          .takingTickets(amount, { value: totalPrice })
-//      ).to.be.revertedWith('Already registered');
-//    });
-//
-//    it('fails if user sends not enough eth', async () => {
-//      const amount = 10;
-//      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
-//      const taker = account1;
-//
-//      await expect(
-//        cccStoreContract
-//          .connect(taker)
-//          .takingTickets(amount, { value: totalPrice.sub(1) })
-//      ).to.be.revertedWith('Not enough money');
-//    });
-//
-//    it('change several status', async () => {
-//      const amount = 10;
-//      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
-//      const taker = account1;
-//
-//      const ticketsBefore = await cccStoreContract.ticketsOf(taker.address);
-//      const totalTicketsBefore = await cccStoreContract.totalTickets();
-//      expect(ticketsBefore.index).to.eq(0);
-//      expect(ticketsBefore.amount).to.eq(0);
-//
-//      await cccStoreContract
-//        .connect(taker)
-//        .takingTickets(amount, { value: totalPrice });
-//
-//      const ticketsAfter = await cccStoreContract.ticketsOf(taker.address);
-//      const totalTicketsAfter = await cccStoreContract.totalTickets();
-//
-//      expect(ticketsAfter.index).to.eq(totalTicketsBefore);
-//      expect(ticketsAfter.amount).to.eq(amount);
-//      expect(totalTicketsAfter).to.eq(totalTicketsBefore.add(amount));
-//    });
-//
-//    it('accumulates totalPrice eth to the contract', async () => {
-//      const amount = 10;
-//      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
-//      const taker = account1;
-//
-//      const ethBalanceOfContract = await ethers.provider.getBalance(
-//        cccStoreContract.address
-//      );
-//
-//      await cccStoreContract
-//        .connect(taker)
-//        .takingTickets(amount, { value: totalPrice });
-//
-//      expect(await ethers.provider.getBalance(cccStoreContract.address)).to.eq(
-//        ethBalanceOfContract.add(totalPrice)
-//      );
-//    });
-//
-//    it('returns changes', async () => {
-//      const amount = 10;
-//      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
-//      const taker = account1;
-//
-//      const ethBalanceOfContractBefore = await ethers.provider.getBalance(
-//        cccStoreContract.address
-//      );
-//      const ethBalanceOfTakerBefore = await ethers.provider.getBalance(
-//        taker.address
-//      );
-//
-//      await cccStoreContract
-//        .connect(taker)
-//        .takingTickets(amount, { value: totalPrice.add(1), gasPrice: 0 });
-//
-//      const ethBalanceOfContractAfter = await ethers.provider.getBalance(
-//        cccStoreContract.address
-//      );
-//      const ethBalanceOfTakerAfter = await ethers.provider.getBalance(
-//        taker.address
-//      );
-//
-//      expect(ethBalanceOfContractAfter).to.eq(
-//        ethBalanceOfContractBefore.add(totalPrice)
-//      );
-//      expect(ethBalanceOfTakerAfter).to.eq(
-//        ethBalanceOfTakerBefore.sub(totalPrice)
-//      );
-//    });
-//
-//    it("emit 'TakingTickets' event", async () => {
-//      const amount = 10;
-//      const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
-//      const taker = account1;
-//      const changes = 1;
-//
-//      await expect(
-//        cccStoreContract
-//          .connect(taker)
-//          .takingTickets(amount, { value: totalPrice.add(changes) })
-//      )
-//        .to.emit(cccStoreContract, 'TakingTickets')
-//        .withArgs(taker.address, amount, changes);
-//    });
-//  });
-//
-//  describe('setRaffleNumber', async () => {
-//    const raffleNumber = raffleResultsData.raffleNumber;
-//
-//    it("fails for non-owner's request", async () => {
-//      const nonOwner = account1;
-//      await expect(
-//        cccStoreContract.connect(nonOwner).setRaffleNumber(raffleNumber)
-//      ).to.be.revertedWith('Ownable: caller is not the owner');
-//    });
-//
-//    it("fails if raffle number is not set correctly", async () => {
-//      await cccStoreContract.setRaffleNumber(raffleNumber);
-//      expect(
-//        await cccStoreContract.raffleNumber()
-//      ).to.eq(raffleNumber);
-//    });
-//  });
-//
-//  describe('setRaffleResults', async () => {
-//    const pageSize = 3;
-//    const holders = raffleResultsData.holders.slice(0, 10);
-//    const amounts = raffleResultsData.amounts.slice(0, 10);
-//
-//    it("fails for non-owner's request", async () => {
-//      const nonOwner = account1;
-//      await expect(
-//        cccStoreContract.connect(nonOwner).setRaffleResults([], [], false)
-//      ).to.be.revertedWith('Ownable: caller is not the owner');
-//    });
-//
-//    it("fails if resultOf does not match input data", async () => {
-//      for (let i = 0; i < holders.length; i += pageSize) {
-//        await cccStoreContract.setRaffleResults(
-//          holders.slice(i, i + pageSize),
-//          amounts.slice(i, i + pageSize),
-//          false
-//        );
-//      };
-//      for (let i = 0; i < holders.length; i++) {
-//        const resultOfHolder = await cccStoreContract.resultOf(holders[i]);
-//        expect(
-//          resultOfHolder.validTicketAmount
-//        ).to.eq(amounts[i]);
-//      };
-//    });
-//  });
-//
-//  describe('getTicketHash', async () => {
-//    it("fails if error", async () => {
-//      const pageSize = 3;
-//      const holders = runRaffleData.holders.slice(0, 10);
-//      const amounts = runRaffleData.amounts.slice(0, 10);
-//      const openingHours = await getCurrentTimestamp();
-//      await cccStoreContract.setOpeningHours(openingHours);
-//      await ethers.provider.send('evm_increaseTime', [
-//        OPERATION_SECONDS_FOR_VIP + 1,
-//      ]);
-//      await ethers.provider.send('evm_mine', []);
-//      for (let i = 0; i < holders.length; i++) {
-//        let accountX = await ethers.getSigner(holders[i]);
-//        await cccStoreContract.connect(accountX).takingTickets(
-//          amounts[i],
-//          { value: TICKET_PRICE_IN_WEI.mul(amounts[i]) }
-//        );
-//      };
-//
-//      let hashToEncode = "0x00000000000000000000000000000000";
-//      for (let i = 0; i < holders.length; i += pageSize) {
-//        hashToEncode = await cccStoreContract.getTicketHash(
-//          holders.slice(i, i + pageSize),
-//          hashToEncode
-//        );
-//        console.log(hashToEncode, i);
-//      };
-//    });
-//  });
-//
-//  describe('getResultHash', async () => {
-//    it("fails if error", async () => {
-//      const pageSize = 3;
-//      const holders = raffleResultsData.holders.slice(0, 10);
-//      const amounts = raffleResultsData.amounts.slice(0, 10);
-//      for (let i = 0; i < holders.length; i += pageSize) {
-//        await cccStoreContract.setRaffleResults(
-//          holders.slice(i, i + pageSize),
-//          amounts.slice(i, i + pageSize),
-//          false
-//        );
-//      };
-//      let hashToEncode = "0x00000000000000000000000000000000";
-//      for (let i = 0; i < holders.length; i += pageSize) {
-//        hashToEncode = await cccStoreContract.getResultHash(
-//          holders.slice(i, i + pageSize),
-//          hashToEncode
-//        );
-//      };
-//      console.log(hashToEncode);
-//    });
-//
-//    it("fails if error - large", async () => {
-//      const pageSize = 250;
-//      const holders = raffleResultsData.holders.slice(0, 10000);
-//      const amounts = raffleResultsData.amounts.slice(0, 10000);
-//      for (let i = 0; i < holders.length; i += pageSize) {
-//        await cccStoreContract.setRaffleResults(
-//          holders.slice(i, i + pageSize),
-//          amounts.slice(i, i + pageSize),
-//          false
-//        );
-//        console.log("set", i);
-//      };
-//      let hashToEncode = "0x00000000000000000000000000000000";
-//      for (let i = 0; i < holders.length; i += pageSize) {
-//        hashToEncode = await cccStoreContract.getResultHash(
-//          holders.slice(i, i + pageSize),
-//          hashToEncode
-//        );
-//        console.log(hashToEncode, i);
-//      };
-//    }).timeout(5000000);
-//  });
-//
-//  describe('mintCCC', async () => {
-//    let firstTwoTicketsHolder: SignerWithAddress;
-//    let allTicketsHolder: SignerWithAddress;
-//    let invalidTicketHolder: SignerWithAddress;
-//
-//    beforeEach(async () => {
-//      const openingHours = await getCurrentTimestamp();
-//      await cccStoreContract.setOpeningHours(openingHours);
-//      await ethers.provider.send('evm_increaseTime', [
-//        OPERATION_SECONDS_FOR_VIP + OPERATION_SECONDS / 2,
-//      ]);
-//      await ethers.provider.send('evm_mine', []);
-//
-//      firstTwoTicketsHolder = account1;
-//      allTicketsHolder = deployer;
-//      invalidTicketHolder = account2;
-//
-//      const twoTickets = 2;
-//      await cccStoreContract
-//        .connect(firstTwoTicketsHolder)
-//        .takingTickets(twoTickets, {
-//          value: TICKET_PRICE_IN_WEI.mul(twoTickets),
-//        });
-//
-//      const ticketAmount = MAX_SUPPLY - twoTickets;
-//      await cccStoreContract
-//        .connect(allTicketsHolder)
-//        .takingTickets(ticketAmount, {
-//          value: TICKET_PRICE_IN_WEI.mul(ticketAmount),
-//        });
-//
-//      const invalidTicket = 1;
-//      await cccStoreContract
-//        .connect(invalidTicketHolder)
-//        .takingTickets(invalidTicket, {
-//          value: TICKET_PRICE_IN_WEI.mul(invalidTicket),
-//        });
-//
-//        await cccStoreContract.setRaffleResults(
-//            [firstTwoTicketsHolder.address
-//            , allTicketsHolder.address] //ticketHolders
-//            , [2, ticketAmount] //ticketAmounts
-//            , true) 
-//    });
-//
-//    it('fails if user does not hold any valid ticket', async () => {
-//
-//      await expect(
-//        cccStoreContract.connect(invalidTicketHolder).mintCCC()
-//      ).to.be.revertedWith('No valid tickets');
-//    });
-//
-//    it('mints maxMintPerTx if validTicketAmount exceeds maxMintPerTx', async () => {
-//
-//
-//      const cccBalanceBefore = await cccFactoryContract.balanceOf(
-//        allTicketsHolder.address
-//      );
-//      expect(cccBalanceBefore).to.eq(0);
-//
-//      const resultsBefore = await cccStoreContract.resultOf(
-//        allTicketsHolder.address
-//      );
-//      const validTicketAmountBefore = resultsBefore.validTicketAmount;
-//
-//      await cccStoreContract.connect(allTicketsHolder).mintCCC();
-//
-//      const cccBalanceAfter = await cccFactoryContract.balanceOf(
-//        allTicketsHolder.address
-//      );
-//      expect(cccBalanceAfter).to.eq(MAX_MINT_PER_TX);
-//
-//      const resultsAfter = await cccStoreContract.resultOf(
-//        allTicketsHolder.address
-//      );
-//      expect(resultsAfter.validTicketAmount).to.eq(
-//        validTicketAmountBefore.sub(MAX_MINT_PER_TX)
-//      );
-//    });
-//
-//    it('mints all if validTicketAmount does not exceed maxMintPerTx', async () => {
-//      const amount = 2;
-//
-//      const cccBalanceBefore = await cccFactoryContract.balanceOf(
-//        firstTwoTicketsHolder.address
-//      );
-//      expect(cccBalanceBefore).to.eq(0);
-//
-//      const resultsBefore = await cccStoreContract.resultOf(
-//        firstTwoTicketsHolder.address
-//      );
-//      expect(resultsBefore.validTicketAmount).to.eq(2);
-//
-//      await cccStoreContract.connect(firstTwoTicketsHolder).mintCCC();
-//
-//      const cccBalanceAfter = await cccFactoryContract.balanceOf(
-//        firstTwoTicketsHolder.address
-//      );
-//      expect(cccBalanceAfter).to.eq(amount);
-//
-//      const resultsAfter = await cccStoreContract.resultOf(
-//        firstTwoTicketsHolder.address
-//      );
-//      expect(resultsAfter.validTicketAmount).to.eq(0);
-//    });
-//
-//    it("emits 'MintCCC' event", async () => {
-//    //   await cccStoreContract.connect(firstTwoTicketsHolder).calculateMyResult();
-//
-//      const amount = 2;
-//      await expect(cccStoreContract.connect(firstTwoTicketsHolder).mintCCC())
-//        .to.emit(cccStoreContract, 'MintCCC')
-//        .withArgs(firstTwoTicketsHolder.address, amount);
-//
-//    //   await cccStoreContract.connect(allTicketsHolder).calculateMyResult();
-//
-//      await expect(cccStoreContract.connect(allTicketsHolder).mintCCC())
-//        .to.emit(cccStoreContract, 'MintCCC')
-//        .withArgs(allTicketsHolder.address, MAX_MINT_PER_TX);
-//    });
-//  });
-
   describe('shuffle', async () => {
     it("fails if error", async () => {
       const shuffledArray = await cccStoreContract.shuffle(1000);
@@ -1169,12 +745,6 @@ describe('CCCStore', () => {
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
-    // it('fails if not enough ticket is taken', async () => {
-    //   await expect(
-    //     cccStoreContract.connect(deployer).withdraw(deployer.address, 1)
-    //   ).to.be.revertedWith('Not enough ethers are collected');
-    // });
-
     it('fails for zero address receiver', async () => {
       await expect(
         cccStoreContract.connect(deployer).withdraw(EMPTY_ADDRESS, 1)
@@ -1183,7 +753,7 @@ describe('CCCStore', () => {
 
     it('sends appropriate eth value', async () => {
       const publicMinter = account1;
-      const amount = 30;
+      const amount = 10;
       const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
 
       await cccStoreContract.connect(publicMinter).mintCCC(amount, {
@@ -1211,7 +781,7 @@ describe('CCCStore', () => {
     });
 
     it("emits 'Withdraw' event", async () => {
-      const amount = 30;
+      const amount = 10;
       const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
 
       await cccStoreContract.connect(deployer).mintCCC(amount, {

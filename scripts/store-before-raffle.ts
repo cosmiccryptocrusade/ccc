@@ -1,15 +1,6 @@
 import { ethers } from 'hardhat';
-import * as fs from 'fs';
 
 const storeAddress = '0xC0A30Deb5DDD84bcB898163C161d46081F4E8422';
-
-// interface IRunRaffleJson {
-//   holders: Array<string>,
-//   amounts: Array<number>,
-//   maxCCC: number,
-//   preMintedCCC: number,
-//   newlyMintedCCCWithPass: number
-// }
 
 const main: () => Promise<any> = async () => {
   const [deployer, premint1, premint2, vip1, vip2, public1, public2] = await ethers.getSigners();
@@ -45,36 +36,6 @@ const main: () => Promise<any> = async () => {
   //   {value:ticketPrice.mul(3)}
   // );
   // console.log('Completed mintWithPass', vip1.address, vip2.address);
-
-  // takingTickets
-  // let openingHours = 0;
-  // openingHours = await getCurrentTimestamp();
-  // openingHours -= 3600 * 9;
-  // await cccStoreContract.setOpeningHours(openingHours);
-  // let currOpeningHours = await cccStoreContract.openingHours();
-  // currOpeningHours = new Date(currOpeningHours * 1000);
-  // console.log(currOpeningHours);
-  // await cccStoreContract.connect(public1).takingTickets(2, {value:ticketPrice.mul(2)});
-  // await cccStoreContract.connect(public2).takingTickets(10000, {value:ticketPrice.mul(10000)});
-  // console.log('Completed takingTickets', public1.address, public2.address);
-
-  // output run-raffle-data.json
-  // const maxCCC = await cccStoreContract.maxCCC();
-  // const preMintedCCC = await cccStoreContract.preMintedCCC();
-  // const newlyMintedCCCWithPass = await cccStoreContract.newlyMintedCCCWithPass();
-  // const runRaffleJson: IRunRaffleJson = {
-  //   holders: [public1.address, public2.address],
-  //   amounts: [2, 10000],
-  //   maxCCC: maxCCC.toNumber(),
-  //   preMintedCCC: preMintedCCC.toNumber(),
-  //   newlyMintedCCCWithPass: newlyMintedCCCWithPass.toNumber()
-  // };
-  // fs.writeFileSync("data/run-raffle-data.json", JSON.stringify(runRaffleJson));
-
-  // getTicketHash
-  // let hashToEncode = "0x00000000000000000000000000000000";
-  // hashToEncode = await cccStoreContract.getTicketHash(runRaffleJson.holders, hashToEncode);
-  // console.log("getTicketHash", hashToEncode);
 };
 
 const getCurrentTimestamp = async () => {

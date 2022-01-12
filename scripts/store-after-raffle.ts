@@ -1,17 +1,7 @@
 import { ethers } from 'hardhat';
-import { BigNumber } from '@ethersproject/bignumber';
 import * as fs from 'fs';
-import raffleResultsData from '../data/raffle-results-data.json';
 
 const storeAddress = '0xC0A30Deb5DDD84bcB898163C161d46081F4E8422';
-
-// interface IRunRaffleJson {
-//   holders: Array<string>,
-//   amounts: Array<number>,
-//   maxCCC: number,
-//   preMintedCCC: number,
-//   newlyMintedCCCWithPass: number
-// }
 
 const main: () => Promise<any> = async () => {
   const [deployer, premint1, premint2, vip1, vip2, public1, public2] = await ethers.getSigners();
@@ -21,27 +11,6 @@ const main: () => Promise<any> = async () => {
   const cccStoreContract = await Store.attach(storeAddress);
 
   const ticketPrice = await cccStoreContract.ticketPrice();
-  const holders = raffleResultsData.holders;
-  const amounts = raffleResultsData.amounts;
-
-  // setRaffleNumber
-  // const raffleNumber = BigNumber.from(raffleResultsData.raffleNumber);
-  // await cccStoreContract.setRaffleNumber(raffleNumber);
-  // console.log("setRaffleNumber", raffleNumber);
-
-  // setRaffleResults
-  // await cccStoreContract.setRaffleResults(holders, amounts, true);
-  // console.log("setRaffleResults", holders, amounts);
-
-  // getResultHash
-  // let hashToEncode = "0x00000000000000000000000000000000";
-  // hashToEncode = await cccStoreContract.getResultHash(holders, hashToEncode);
-  // console.log("getResultHash", hashToEncode);
-
-  // mintCCC
-  // await cccStoreContract.connect(public1).mintCCC();
-  // await cccStoreContract.connect(public2).mintCCC();
-  // console.log("Completed mintCCC", public1.address, public2.address);
 
   // mintCCC
   // let openingHours = await getCurrentTimestamp();
