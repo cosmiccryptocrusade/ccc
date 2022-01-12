@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat';
 
 const factoryAddress = '0xdE2bBeb807d5ba1fBeb42a37A5EB199e0Fc5Dd61';
-const passAddress = '0xd5381fb3Ee262Be5531ad4d5188549F080e9E9c4';
+const passAddress = '0x1e732f6260a24B1A79E2Ea9c4fc1E280cDeab927';
 const storeAddress = '0xC0A30Deb5DDD84bcB898163C161d46081F4E8422';
 
 const main: () => Promise<any> = async () => {
