@@ -16,7 +16,8 @@ contract CCCPass is EIP712, Ownable {
         uint8 passType;
     }
 
-    mapping(address => uint256) public claimBalance;
+    mapping(address => uint256) public claimedType0Count;
+    mapping(address => uint256) public claimedType1Count;
 
     bool public paused = true;
     string public baseURI;
@@ -75,17 +76,19 @@ contract CCCPass is EIP712, Ownable {
         require(msg.sender == store, "Not store");
         require(block.timestamp < claimUntil, "Claim period ended");
         require(paused == false, "Claims paused");
-        require(_passAmount - claimBalance[sender] > 0, "Not enough pass");
-        claimBalance[sender] = claimBalance[sender] + _amountToMint;
         uint256 MAX_SUPPLY = MAX_SUPPLY_PASS_TYPE_0;
         uint256 currentPassCount = currentPassType0Count;
 
         if (passType == 0) {
+            require(_passAmount - claimedType0Count[sender] - _amountToMint >= 0, "Not enough pass");
+            claimedType0Count[sender] += _amountToMint;
             currentPassType0Count += _amountToMint;
         } else if(passType == 1) {
+            require(_passAmount - claimedType1Count[sender] - _amountToMint >= 0, "Not enough pass");
+            claimedType1Count[sender] += _amountToMint;
+            currentPassType1Count += _amountToMint;
             MAX_SUPPLY = MAX_SUPPLY_PASS_TYPE_1;
             currentPassCount = currentPassType1Count;        
-            currentPassType1Count += _amountToMint;
         }
 
         require(currentPassCount + _amountToMint <= MAX_SUPPLY, "Exceeds max supply");

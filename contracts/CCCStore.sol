@@ -207,7 +207,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
         uint256 totalPrice = ticketPrice * _amountToMint;
         require(totalPrice <= msg.value, "Not enough money");
         
-        bool validPartner = pass.checkPass(msg.sender,_passAmount,_amountToMint, passType, vSig, rSig, sSig);
+        bool validPartner = pass.checkPass(msg.sender, _passAmount, _amountToMint, passType, vSig, rSig, sSig);
         require(validPartner);
 
         uint256 mintedCCC = mintedCCCOf[msg.sender];

@@ -50,9 +50,9 @@ const main: () => Promise<any> = async () => {
   // let currOpeningHours = await cccStoreContract.openingHours();
   // currOpeningHours = new Date(currOpeningHours * 1000);
   // console.log(currOpeningHours);
-  // await cccStoreContract.connect(public1).mintCCC(3, {value: ticketPrice.mul(3)});
+  await cccStoreContract.connect(public1).mintCCC(3, {value: ticketPrice.mul(3)});
   // await cccStoreContract.connect(public2).mintCCC(30, {value: ticketPrice.mul(31)});
-  // console.log("Completed mintCCC", public1.address, public2.address);
+  console.log("Completed mintCCC", public1.address, public2.address);
 
   // getRandomNumber
   // await cccStoreContract.getRandomNumber();
@@ -63,14 +63,14 @@ const main: () => Promise<any> = async () => {
   // console.log("Check shuffleNumber", shuffleNumber);
 
   // shuffle
-  let shuffledArray = await cccStoreContract.shuffle(10000);
-  shuffledArray = shuffledArray.map((x: any) => {return x.toNumber()});
-  fs.writeFileSync("data/shuffle-data.json", JSON.stringify(shuffledArray));
+  // let shuffledArray = await cccStoreContract.shuffle(10000);
+  // shuffledArray = shuffledArray.map((x: any) => {return x.toNumber()});
+  // fs.writeFileSync("data/shuffle-data.json", JSON.stringify(shuffledArray));
 
   // withdraw
-  const amount = 0.00576 * 10**18;
-  await cccStoreContract.withdraw(deployer.address, amount);
-  console.log("withdraw", amount / 10**18);
+  // const amount = 0.00576 * 10**18;
+  // await cccStoreContract.withdraw(deployer.address, amount);
+  // console.log("withdraw", amount / 10**18);
 };
 
 const getCurrentTimestamp = async () => {
