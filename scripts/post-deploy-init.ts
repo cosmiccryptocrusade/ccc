@@ -1,9 +1,8 @@
 import { ethers } from 'hardhat';
 
 const factoryAddress = '0xdE2bBeb807d5ba1fBeb42a37A5EB199e0Fc5Dd61';
-const passAddress = '0xd5381fb3Ee262Be5531ad4d5188549F080e9E9c4';
-const storeAddress = '0x8837E6100912Bdf52B12A24807800e6BD3BaC506';
-const raffleAddress = '0xdE2bBeb807d5ba1fBeb42a37A5EB199e0Fc5Dd61';
+const passAddress = '0x1e732f6260a24B1A79E2Ea9c4fc1E280cDeab927';
+const storeAddress = '0xC0A30Deb5DDD84bcB898163C161d46081F4E8422';
 
 const main: () => Promise<any> = async () => {
   const [deployer] = await ethers.getSigners();
@@ -22,7 +21,6 @@ const main: () => Promise<any> = async () => {
   await passContract.setStore(cccStoreContract.address);
   await cccStoreContract.setCCCFactory(cccFactoryContract.address);
   await cccStoreContract.setPass(passContract.address);
-  await cccStoreContract.setRaffleContract(raffleAddress);
 
   const currentBlockNum = await ethers.provider.getBlockNumber();
   const currentBlock = await ethers.provider.getBlock(currentBlockNum);

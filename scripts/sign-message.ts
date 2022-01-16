@@ -8,7 +8,6 @@ interface PassReq {
   rSig: string;
   sSig: string;
   amount: number;
-  passType: number;
 }
 
 interface DomainType {
@@ -59,13 +58,12 @@ const main = async () => {
         console.log(signature)
 
         const { r, s, v } = ethers.utils.splitSignature(signature);
-        amount = 3;
-        passReqMap[receiver] = {
+        const passKey = `${receiver},${passType}`;
+        passReqMap[passKey] = {
           rSig: r,
           sSig: s,
           vSig: v,
           amount,
-          passType,
         };
       }
     )
