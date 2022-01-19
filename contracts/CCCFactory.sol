@@ -45,7 +45,6 @@ contract CCCFactory is ERC721, Ownable {
 
     function mint(address to) public onlyOwnerOrStore {
         require(totalSupply < MAX_SUPPLY, "Exceeds max supply");
-        // TODO: check if need to change this to _safeMint
         _mint(to, totalSupply);
         totalSupply += 1;
     }
