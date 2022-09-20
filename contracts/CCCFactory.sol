@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract CCCFactory is ERC721, Ownable {
     string public baseURI;
-    uint256 public constant MAX_SUPPLY = 10000;
+    uint256 public constant MAX_SUPPLY = 5000;
     uint256 public totalSupply;
     address public cccStore;
 

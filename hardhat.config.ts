@@ -45,10 +45,10 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       url: `http://127.0.0.1:8545/`,
-      accounts: [],
+      accounts: mnemonic,
     },
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${process.env.INFURA_KEY}`,
+    goerli: {
+      url: `https://goerli.infura.io/v3/${process.env.INFURA_KEY}`,
       accounts: mnemonic
     },
     mainnet: {

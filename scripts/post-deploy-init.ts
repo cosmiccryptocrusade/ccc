@@ -17,10 +17,10 @@ const main: () => Promise<any> = async () => {
   const cccStoreContract = await Store.attach(storeAddress);
 
   //link em up
-  await cccFactoryContract.setCCCStore(cccStoreContract.address);
-  await passContract.setStore(cccStoreContract.address);
-  await cccStoreContract.setCCCFactory(cccFactoryContract.address);
-  await cccStoreContract.setPass(passContract.address);
+  // await cccFactoryContract.setCCCStore(cccStoreContract.address);
+  // await passContract.setStore(cccStoreContract.address);
+  // await cccStoreContract.setCCCFactory(cccFactoryContract.address);
+  // await cccStoreContract.setPass(passContract.address);
 
   const currentBlockNum = await ethers.provider.getBlockNumber();
   const currentBlock = await ethers.provider.getBlock(currentBlockNum);

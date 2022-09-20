@@ -13,13 +13,13 @@ const main: () => Promise<any> = async () => {
   const ticketPrice = await cccStoreContract.ticketPrice();
 
   // mintCCC
-  // let openingHours = await getCurrentTimestamp();
-  // openingHours -= 3600 * 9;
-  // await cccStoreContract.setOpeningHours(openingHours);
+  let openingHours = await getCurrentTimestamp();
+  openingHours -= 3600 * 9;
+  await cccStoreContract.setOpeningHours(openingHours);
   // let currOpeningHours = await cccStoreContract.openingHours();
   // currOpeningHours = new Date(currOpeningHours * 1000);
   // console.log(currOpeningHours);
-  await cccStoreContract.connect(public1).mintCCC(3, {value: ticketPrice.mul(3)});
+  // await cccStoreContract.connect(public1).mintCCC(3, {value: ticketPrice.mul(3)});
   // await cccStoreContract.connect(public2).mintCCC(30, {value: ticketPrice.mul(31)});
   console.log("Completed mintCCC", public1.address, public2.address);
 

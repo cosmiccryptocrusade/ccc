@@ -9,16 +9,15 @@ interface Factory {
 }
 
 interface Pass {
-    function claimBalance(address) external view returns (uint256);
-    function checkPass(
+    function claimedCount(address) external view returns (uint256);
+    function claimPass(
         address sender,
         uint256 _passAmount,
         uint256 _amountToMint,
-        uint8 passType,
         uint8 vSig,
         bytes32 rSig,
         bytes32 sSig
-    ) external returns(bool isPartner);
+    ) external returns(bool claimed);
 }
 
 contract CCCStore is Ownable, VRFConsumerBase {
@@ -26,9 +25,9 @@ contract CCCStore is Ownable, VRFConsumerBase {
     Factory public cccFactory;
 
     /**
-        Numbers for CCC Factory
+        Max supply
      */
-    uint256 public constant maxCCC = 10000;
+    uint256 public constant maxCCC = 5000;
 
     /**
         Verification and VRF
@@ -36,80 +35,70 @@ contract CCCStore is Ownable, VRFConsumerBase {
     bytes32 internal keyHash;
     uint256 internal fee;
     uint256 public shuffleNumber;
-    string public verificationHash = "Qmh....."; // hash to verify initial order
+    string public verificationHash; // hash to verify initial order. it will be the keccak256 hash of the ipfs hash
 
     /**
         Team allocated CCC
      */
-    // CCC which is minted by the owner
-    uint256 public preMintedCCC = 0;
-    // MAX CCC which owner can mint
-    uint256 public constant maxPreMintCCC = 500;
+    uint256 public constant maxCCCForTeam = 345; // 6.9% of 5000
 
     /**
-        Mint Pass
+        Mint stats
      */
-    uint256 public newlyMintedCCCWithPass = 0;
-    mapping(address => uint256) public mintedCCCOf;
-
-    // public mint
-    uint256 public newlyMintedCCCPublic = 0;
-    mapping(address => uint256) public publicMintedCCCOf;
+    uint256 public totalCCCMinted = 0;
+    uint256 public totalCCCMintedByTeam = 0;
+    uint256 public totalCCCMintedByVIP = 0;
+    mapping(address => uint256) public CCCMinted;
+    uint256 public totalETHDonated = 0;
+    uint256 public totalETHDonatedByVIP = 0;
 
     /**
         Scheduling
      */
     uint256 public openingHours;
-    uint256 public constant operationSecondsForVIP =  3600 * 9; // 9 hours 
-    uint256 public constant operationSeconds = 3600 * 24; // 24 hours
 
     /**
-        Ticket
+        Prices
      */
-    uint256 public ticketPrice = 0.00008 ether;
+    uint256 public mintPrice = 0.2 ether;
+    uint256 public VIPDiscount = 0.05 ether;
 
     /**
         Security
      */
-    uint256 public constant maxMintPerTx = 10;
+    uint256 public constant maxMintPerTx = 100;
 
     event SetPass(address pass);
     event SetCCCFactory(address cccFactory);
-    event SetTicketPrice(uint256 price);
+    event SetMintPrice(uint256 price);
     event SetOpeningHours(uint256 openingHours);
-    event MintWithPass(address account, uint256 amount, uint256 changes);
-    event MintCCC(address account, uint256 mintRequestAmount, uint256 changes);
+    event MintCCC(address account, uint256 amount);
     event Withdraw(address to);
-    event SetChainlinkFee(uint256);
-    event SetChainlinkKeyHash(bytes32);
 
+    // mainnet
+    // constructor()
+    //     VRFConsumerBase(
+    //         0xf0d54349aDdcf704F77AE15b96510dEA15cb7952, // VRF Coordinator
+    //         0x514910771AF9Ca656af840dff83E8264EcF986CA  // LINK Token
+    //     ) {
+    //     keyHash = 0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445;
+    //     fee = 2 * 10 ** 18;
+    // }
+
+    // goerli
     constructor()
         VRFConsumerBase(
-            0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B, // VRF Coordinator
-            0x01BE23585060835E02B77ef475b0Cc51aA1e0709  // LINK Token
+            0x2bce784e69d2Ff36c71edcB9F88358dB0DfB55b4, // VRF Coordinator
+            0x326C977E6efc84E512bB9C30f76E30c160eD06FB  // LINK Token
         ) {
-        keyHash = 0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311;
+        keyHash = 0x0476f9a745b61ea5c0ab224d3a6e4c99f0b02fce4da01143a4f70aa80ae76e8a;
         fee = 0.1 * 10 ** 18;
-    }
-
-    modifier whenVIPOpened() {
-        require(block.timestamp >= openingHours, "Store is not opened for VIP");
-        require(
-            block.timestamp < openingHours + operationSecondsForVIP,
-            "Store is closed for VIP"
-        );
-        _;
     }
 
     modifier whenOpened() {
         require(
-            block.timestamp >= openingHours + operationSecondsForVIP,
+            block.timestamp >= openingHours,
             "Store is not opened"
-        );
-        require(
-            block.timestamp <
-                openingHours + operationSecondsForVIP + operationSeconds,
-            "Store is closed"
         );
         _;
     }
@@ -124,9 +113,10 @@ contract CCCStore is Ownable, VRFConsumerBase {
         emit SetCCCFactory(address(_cccFactory));
     }
 
-    function setTicketPrice(uint256 _price) external onlyOwner {
-        ticketPrice = _price * 0.0000001 ether;
-        emit SetTicketPrice(_price);
+    // price in terms of 0.01 ether
+    function setMintPrice(uint256 _price) external onlyOwner {
+        mintPrice = _price * 0.01 ether;
+        emit SetMintPrice(_price);
     }
 
     function setOpeningHours(uint256 _openingHours) external onlyOwner {
@@ -134,90 +124,62 @@ contract CCCStore is Ownable, VRFConsumerBase {
         emit SetOpeningHours(_openingHours);
     }
 
-    function preMintCCC(address[] memory recipients) external onlyOwner {
-        require(
-            block.timestamp <
-                openingHours + operationSecondsForVIP + operationSeconds,
-            "Not available after ticketing period"
-        );
-        uint256 totalRecipients = recipients.length;
-
-        require(
-            totalRecipients > 0,
-            "Number of recipients must be greater than 0"
-        );
-        require(
-            preMintedCCC + totalRecipients <= maxPreMintCCC,
-            "Exceeds max pre-mint CCC"
-        );
-
-        for (uint256 i = 0; i < totalRecipients; i++) {
-            address to = recipients[i];
-            require(to != address(0), "receiver can not be empty address");
-            cccFactory.mint(to);
+    function preMintCCC() external onlyOwner {
+        for (uint256 i = 0; i < maxCCCForTeam; i++) {
+            cccFactory.mint(msg.sender);
         }
-
-        preMintedCCC += totalRecipients;
+        totalCCCMintedByTeam += maxCCCForTeam;
+        totalCCCMinted += maxCCCForTeam;
     }
 
-    function mintWithPass(
+    function mintCCC(
         uint256 _passAmount,
         uint256 _amountToMint,
-        uint8 passType,
         uint8 vSig,
         bytes32 rSig,
         bytes32 sSig)
         external 
         payable 
-        whenVIPOpened {
+        whenOpened {
         require(_amountToMint <= maxMintPerTx, "mint amount exceeds maximum");
         require(_amountToMint > 0, "Need to mint more than 0");
-        uint256 totalPrice = ticketPrice * _amountToMint;
-        require(totalPrice <= msg.value, "Not enough money");
-        
-        bool validPartner = pass.checkPass(msg.sender, _passAmount, _amountToMint, passType, vSig, rSig, sSig);
-        require(validPartner);
 
-        uint256 mintedCCC = mintedCCCOf[msg.sender];
+        uint256 amountWithDiscount = 0;
+        bool isVIP = false;
+        if (_passAmount > 0) {
+            uint256 senderClaimedCount = pass.claimedCount(msg.sender);
+            if (senderClaimedCount > 0) {
+                isVIP = true;
+            }
+            if (_passAmount > senderClaimedCount) {
+                uint256 senderUnclaimedCount = _passAmount - senderClaimedCount;
+                uint256 toClaim = _amountToMint > senderUnclaimedCount ? senderUnclaimedCount : _amountToMint;
+                bool claimed = pass.claimPass(msg.sender, _passAmount, _amountToMint, vSig, rSig, sSig);
+                if (claimed) {
+                    amountWithDiscount = toClaim;
+                    isVIP = true;
+                }
+            }
+        }
+
+        uint256 totalPrice = mintPrice * _amountToMint - VIPDiscount * amountWithDiscount;
+        require(totalPrice <= msg.value, "Not enough money");
+
+        uint256 senderCCCMinted = CCCMinted[msg.sender];
 
         for (uint256 i = 0; i < _amountToMint; i += 1) {
             cccFactory.mint(msg.sender);
         }
 
-        mintedCCCOf[msg.sender] = mintedCCC + _amountToMint;
-        newlyMintedCCCWithPass += _amountToMint;
-
-        // Refund changes
-        uint256 changes = msg.value - totalPrice;
-        emit MintWithPass(msg.sender, _amountToMint, changes);
-
-        if (changes > 0) {
-            payable(msg.sender).transfer(changes);
-        }
-    }
-
-    function mintCCC(uint256 _amountToMint) external payable whenOpened {
-        require(_amountToMint <= maxMintPerTx, "mint amount exceeds maximum");
-        require(_amountToMint > 0, "Need to mint more than 0");
-        uint256 totalPrice = ticketPrice * _amountToMint;
-        require(totalPrice <= msg.value, "Not enough money");
-        
-        uint256 publicMintedCCC = publicMintedCCCOf[msg.sender];
-
-        for (uint256 i = 0; i < _amountToMint; i += 1) {
-            cccFactory.mint(msg.sender);
+        totalCCCMinted += _amountToMint;
+        CCCMinted[msg.sender] = senderCCCMinted + _amountToMint;
+        totalETHDonated += totalPrice;
+        if (isVIP) {
+            totalCCCMintedByVIP += _amountToMint;
+            totalETHDonatedByVIP += totalPrice;
         }
 
-        publicMintedCCCOf[msg.sender] = publicMintedCCC + _amountToMint;
-        newlyMintedCCCPublic += _amountToMint;
-
-        // Refund changes
-        uint256 changes = msg.value - totalPrice;
-        emit MintCCC(msg.sender, _amountToMint, changes);
-
-        if (changes > 0) {
-            payable(msg.sender).transfer(changes);
-        }
+        emit MintCCC(msg.sender, _amountToMint);
     }
 
     function getRandomNumber() external onlyOwner returns (bytes32 requestId) {
@@ -231,16 +193,6 @@ contract CCCStore is Ownable, VRFConsumerBase {
     function fulfillRandomness(bytes32, uint256 randomness) internal override {
         require(shuffleNumber == 0, "shuffle number is already set");
         shuffleNumber = randomness;
-    }
-
-    function setKeyHash(bytes32 _keyHash) external onlyOwner {
-        keyHash = _keyHash;
-        emit SetChainlinkKeyHash(_keyHash);
-    }
-
-    function setChainlinkFee(uint256 _fee) external onlyOwner {
-        fee = _fee;
-        emit SetChainlinkFee(_fee);
     }
 
     // Fisher-Yates shuffle to obtained shuffled array of 0 to 9999. token id #n will be picture shuffledArray[n]
