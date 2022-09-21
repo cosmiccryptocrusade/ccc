@@ -4,24 +4,27 @@ This repo contains the contract code for the Comic Crypto Crusade NFT's.
 
 
 ## Design
-The base contracts were inspired from the URS.contract, we have added 2 major changes
-1. Claim passes directly for partners by checking the signatures, no intermediate NFT's
-1. Do the calculations for claiming in an L2 chain and bring back the claims via a merkle distributor so that as a User there is only 2 transactions instead of 3
+There are 2 main differences from the standard ERC721 NFT contracts.
+1. There is a pass contract which verifies whitelisted address. These VIPs pay a discounted price.
+1. It uses Chainlink VRF to get a random seed, which will be used to determine the shuffled order of the NFTs for reveal. This ensures that the Team cannot cheat (e.g. assign rare NFTs to themselves).
 
 
 ## Process
+1. Deploy the factory contract ``` npx hardhat run scripts/deploy-factory.ts --network goerli ```
 1. Deploy the pass contract ``` npx hardhat run scripts/deploy-pass.ts --network goerli ```
 1. Deploy the store contract ``` npx hardhat run scripts/deploy-store.ts --network goerli ```
-1. Deploy the factory contract ``` npx hardhat run scripts/deploy-factory.ts --network goerli ```
 1. Link up the above 3 contracts and set init parameters ``` npx hardhat run scripts/post-deploy-init.ts --network goerli ```
 
 ## Parameters to init
-1. Store open hours
-1. VIP open hours
-....
+1. Store openingHours and mintPrice
 
-## Private Sale && Snapshot of partner projects
+## Whitelisting process
+1. We will generate a list of addresses that have donated to GitCoin (period/rounds TBD). These addresses will be allowed up to N discounted NFT mints based on their donation amounts. 
+1. ```sign-message.ts``` will generate the signatures to be used by the mint page on the CCC website.
 
-1. In order to get the addresses of all the VIP's we need to snapshot their balance at a time in moment X
-1. Then when the sale opens, these addresses can have a claim. These claims can be generated from a csv file. 
-1. The generated file then needs to be made available to the address owner. [We could also embed it into the website, like your eligible and these are the parameters, additionally a button to make the UX easier can be made available]
+## Shuffle process
+1. The NFT attributes json files will be uploaded to IPFS in a folder structure with an initial order. The keccak256 hash of the IPFS hash will be set as the ```verificationHash``` on the Store contract. This will be done pre-deployment.
+1. After the mint period, ```getRandomNumber()``` on the Store contract will be called to generate a ```shuffleNumber```. This can only be done once.
+1. ```shuffle()``` will be called to generate a shuffled array. NFT #n will be assigned picture ```shuffledArray[n]``` from the initial order.
+1. The NFT attributes json files will be reuploaded on IPFS in the shuffled order, and ```setBaseURI()``` on the Factory contract will be called with the new IPFS link.
+1. The original IPFS hash will also be revealed if the public wishes to verify the initial order.

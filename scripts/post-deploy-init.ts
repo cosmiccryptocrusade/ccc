@@ -17,18 +17,18 @@ const main: () => Promise<any> = async () => {
   const cccStoreContract = await Store.attach(storeAddress);
 
   //link em up
-  // await cccFactoryContract.setCCCStore(cccStoreContract.address);
-  // await passContract.setStore(cccStoreContract.address);
-  // await cccStoreContract.setCCCFactory(cccFactoryContract.address);
-  // await cccStoreContract.setPass(passContract.address);
+  await cccFactoryContract.setCCCStore(cccStoreContract.address);
+  await passContract.setStore(cccStoreContract.address);
+  await cccStoreContract.setCCCFactory(cccFactoryContract.address);
+  await cccStoreContract.setPass(passContract.address);
 
-  // await passContract.unpause();
+  await passContract.unpause();
 
-  // let openingHours = 0;
-  // openingHours = await getCurrentTimestamp();
-  // await cccStoreContract.setOpeningHours(openingHours);
+  let openingHours = 0;
+  openingHours = await getCurrentTimestamp();
+  await cccStoreContract.setOpeningHours(openingHours);
 
-  await cccStoreContract.setMintPrice(10);
+  // await cccStoreContract.setMintPrice(10);
 
   console.log('Completed init actions');
 };

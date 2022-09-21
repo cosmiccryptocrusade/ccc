@@ -42,14 +42,14 @@ const main: () => Promise<any> = async () => {
   // console.log((await cccStoreContract.totalCCCMinted()).toString());
   // console.log((await cccStoreContract.totalETHDonated()).toString());
 
-  await cccStoreContract.connect(vip1).mintCCC(
-    5,
-    2,
-    27,
-    "0x8c92f0966089ed392c385cca2db4861306d7655a74ab0a024d32af18e18a17da",
-    "0x18d4239813128efb8c8342fd877bfeefb07be0e5332356f34bf22bdf1e7a33db",
-    { value: mintPrice.mul(2).sub(VIPDiscount.mul(2)) }
-  );
+  // await cccStoreContract.connect(vip1).mintCCC(
+  //   5,
+  //   2,
+  //   27,
+  //   "0x8c92f0966089ed392c385cca2db4861306d7655a74ab0a024d32af18e18a17da",
+  //   "0x18d4239813128efb8c8342fd877bfeefb07be0e5332356f34bf22bdf1e7a33db",
+  //   { value: mintPrice.mul(2).sub(VIPDiscount.mul(2)) }
+  // );
   // console.log((await cccStoreContract.totalCCCMinted()).toString());
   // console.log((await cccStoreContract.totalCCCMintedByVIP()).toString());
   // console.log((await cccStoreContract.totalETHDonated()).toString());
