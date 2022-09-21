@@ -125,6 +125,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
     }
 
     function preMintCCC() external onlyOwner {
+        require(totalCCCMintedByTeam == 0, "preMint was done");
         for (uint256 i = 0; i < maxCCCForTeam; i++) {
             cccFactory.mint(msg.sender);
         }
@@ -154,7 +155,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
             if (_passAmount > senderClaimedCount) {
                 uint256 senderUnclaimedCount = _passAmount - senderClaimedCount;
                 uint256 toClaim = _amountToMint > senderUnclaimedCount ? senderUnclaimedCount : _amountToMint;
-                bool claimed = pass.claimPass(msg.sender, _passAmount, _amountToMint, vSig, rSig, sSig);
+                bool claimed = pass.claimPass(msg.sender, _passAmount, toClaim, vSig, rSig, sSig);
                 if (claimed) {
                     amountWithDiscount = toClaim;
                     isVIP = true;

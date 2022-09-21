@@ -42,8 +42,8 @@ const main = async () => {
   await Promise.all(
     Object.values(PassReceiverData.receiverData).map(
       async (receiverData) => {
-        let receiver = receiverData.receiver, amount = receiverData.amount, passType = receiverData.passType;
-        console.log(receiver, amount, passType)
+        let receiver = receiverData.receiver, amount = receiverData.amount;
+        console.log(receiver, amount)
         const signature = await signTypedData({
           signer: owner,
           domain: PassReceiverData.domain,
@@ -51,14 +51,11 @@ const main = async () => {
           data: {
             receiver:receiver,
             amount:amount,
-            passType:passType
           },
         });
 
-        console.log(signature)
-
         const { r, s, v } = ethers.utils.splitSignature(signature);
-        const passKey = `${receiver},${passType}`;
+        const passKey = `${receiver}`;
         passReqMap[passKey] = {
           rSig: r,
           sSig: s,

@@ -39,12 +39,6 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       initialBaseFeePerGas: 0,
-      accounts: {
-        accountsBalance: '100000000000000000000000', // 100,000eth
-      },
-    },
-    localhost: {
-      url: `http://127.0.0.1:8545/`,
       accounts: mnemonic,
     },
     goerli: {
