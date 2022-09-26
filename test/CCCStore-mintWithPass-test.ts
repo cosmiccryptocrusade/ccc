@@ -1,43 +1,27 @@
 import chai from 'chai';
 import { ethers } from 'hardhat';
-import {
-  CCCFactory,
-  CCCFactory__factory,
-  CCCStore,
-  CCCStore__factory,
-  TestCCCPass as CCCPass,
-  TestCCCPass__factory as CCCPass__factory,
-} from '../types';
+import { Contract } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
-import { testSets, testSetForPrint } from './utils/CalcHelper';
-// import { intToHex } from 'ethjs-util';
 import { signTypedData, DomainType, splitSignature } from './utils/EIP712';
-
 
 chai.use(solidity);
 const { expect } = chai;
 
-const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
-const MAX_SUPPLY = 10000;
-const MAX_PRE_MINT_SUPPLY = 500;
-const MAX_CCC_PER_PASS = 5;
-const MAX_MINT_PER_TX = 30;
-const TICKET_PRICE_IN_WEI = ethers.utils.parseEther('0.00008');
-const OPERATION_SECONDS_FOR_VIP = 60 * 30;
-const OPERATION_SECONDS = 3600 * 48;
+const MINT_PRICE = ethers.utils.parseEther('0.2');
+const VIP_DISCOUNT = ethers.utils.parseEther('0.05');
 
 const configs = {
-  name: 'test',
-  symbol: 'tst',
-  baseURI: 'test.com/',
+  name: 'Test',
+  symbol: 'TEST',
+  baseURI: 'ipfs://test/',
 };
 
-describe('claimPass', async () => {
+describe('CCCStore-mintWithPass', async () => {
   let [deployer, account1]: SignerWithAddress[] = [];
-    let cccPassContract: CCCPass;
-    let cccFactoryContract: CCCFactory;
-    let cccStoreContract: CCCStore;
+    let cccFactoryContract: Contract;
+    let cccPassContract: Contract;
+    let cccStoreContract: Contract;
   
     const getCurrentTimestamp = async () => {
       const currentBlockNum = await ethers.provider.getBlockNumber();
@@ -46,8 +30,6 @@ describe('claimPass', async () => {
       return currentTimestamp;
     };
   
-    let currentTimestamp: number;
-
     let contractOwner: SignerWithAddress = deployer;
     let domain: DomainType;
     let types: any;
@@ -60,28 +42,35 @@ describe('claimPass', async () => {
 
       [deployer, account1] = await ethers.getSigners();
       contractOwner = deployer;
-      const cccPassFactory = new CCCPass__factory(contractOwner);
-        cccPassContract = await cccPassFactory.deploy(
-          configs.name,
-          configs.baseURI
-        );
-
-        const CCCFactory = new CCCFactory__factory(contractOwner);
-        cccFactoryContract = await CCCFactory.deploy(
+      const Factory = await ethers.getContractFactory('contracts/CCCFactory.sol:CCCFactory');
+      cccFactoryContract = await Factory.deploy(
         configs.name,
         configs.symbol,
         configs.baseURI
-        );
+      );
 
-        const CCCStore = new CCCStore__factory(contractOwner);
-        cccStoreContract = await CCCStore.deploy();
+      const Pass = await ethers.getContractFactory('contracts/CCCPass.sol:CCCPass');
+      cccPassContract = await Pass.deploy(
+        configs.name,
+        configs.baseURI
+      );
 
-        console.log('contractOwner ', contractOwner.address);
+      const Store = await ethers.getContractFactory('CCCStore');
+      cccStoreContract = await Store.deploy();
 
-        await cccFactoryContract.setCCCStore(cccStoreContract.address);
-        await cccStoreContract.setCCCFactory(cccFactoryContract.address);
-        await cccStoreContract.setPass(cccPassContract.address);
-        await cccPassContract.setStore(cccStoreContract.address);
+      console.log('contractOwner ', contractOwner.address);
+
+      await cccFactoryContract.setCCCStore(cccStoreContract.address);
+      await cccStoreContract.setCCCFactory(cccFactoryContract.address);
+      await cccStoreContract.setCCCPass(cccPassContract.address);
+      await cccPassContract.setCCCStore(cccStoreContract.address);
+
+      await cccPassContract.unpause();
+
+      let openingHours = 0;
+      openingHours = await getCurrentTimestamp();
+      await cccStoreContract.setOpeningHours(openingHours);
+
       domain = {
         name: configs.name,
         version: '1',
@@ -98,10 +87,6 @@ describe('claimPass', async () => {
             name: 'amount',
             type: 'uint256',
           },
-          {
-            name: 'passType',
-            type: 'uint8',
-          },
         ],
       };
       signature = await signTypedData({
@@ -111,43 +96,38 @@ describe('claimPass', async () => {
         data: {
           receiver: account1.address,
           amount: 3,
-          passType: 0,
         },
       });
       const { r, s, v } = splitSignature(signature);
       splitSig = [v, r, s];
-
-      const currentBlockNum = await ethers.provider.getBlockNumber();
-      const currentBlock = await ethers.provider.getBlock(currentBlockNum);
-      currentTimestamp = currentBlock.timestamp;
-
-      await cccPassContract.setClaimUntil(currentTimestamp + 3600);
-      await cccPassContract.unpause();
-
-      let openingHours = 0;
-      openingHours = await getCurrentTimestamp();
-      await cccStoreContract.setOpeningHours(openingHours);
-
     });
 
     it('successfully mints claimed amount pass', async () => {
         const receiver = account1;
-        const amount = 3;
-        const passType = 0;
-        const totalPrice = TICKET_PRICE_IN_WEI.mul(amount);
+        const mintAmount = 5;
+        const discountAmount = 3;
+        const totalPrice = MINT_PRICE.mul(mintAmount).sub(VIP_DISCOUNT.mul(discountAmount));
 
-        const mintedAmount = await cccStoreContract.mintedCCCOf(receiver.address);
-        const newlyMintedCCCWithPass = await cccStoreContract.newlyMintedCCCWithPass();
+        const claimedCount = await cccPassContract.claimedCount(receiver.address);
+        const CCCMinted = await cccStoreContract.CCCMinted(receiver.address);
+        const totalCCCMinted = await cccStoreContract.totalCCCMinted();
+        const totalCCCMintedByVIP = await cccStoreContract.totalCCCMintedByVIP();
 
         await cccStoreContract
           .connect(receiver)
-          .mintWithPass(3, amount, passType, ...splitSig, {value: totalPrice});
+          .mintCCC(3, mintAmount, ...splitSig, { value: totalPrice });
 
-        expect(await cccStoreContract.mintedCCCOf(receiver.address)).to.eq(
-          mintedAmount.toNumber() + amount
+        expect(await cccPassContract.claimedCount(receiver.address)).to.eq(
+          claimedCount.toNumber() + discountAmount
         );
-        expect(await cccStoreContract.newlyMintedCCCWithPass()).to.eq(
-          newlyMintedCCCWithPass.toNumber() + amount
+        expect(await cccStoreContract.CCCMinted(receiver.address)).to.eq(
+          CCCMinted.toNumber() + mintAmount
+        );
+        expect(await cccStoreContract.totalCCCMinted()).to.eq(
+          totalCCCMinted.toNumber() + mintAmount
+        );
+        expect(await cccStoreContract.totalCCCMintedByVIP()).to.eq(
+          totalCCCMintedByVIP.toNumber() + mintAmount
         );
     });
 })

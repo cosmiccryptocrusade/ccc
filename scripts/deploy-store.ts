@@ -5,7 +5,7 @@ const main: () => Promise<any> = async () => {
   const [deployer] = await ethers.getSigners();
   console.log('Deploying contracts with the account:', deployer.address);
 
-  const Store = await ethers.getContractFactory('CCCStore');
+  const Store = await ethers.getContractFactory('contracts/CCCStore.sol:CCCStore');
   const contract = await Store.deploy();
 
   await contract.deployed();
@@ -27,13 +27,13 @@ async function verify(contractAddress: any, ...args: any) {
 }
 
 function delay(ms: number) {
-  return new Promise( resolve => setTimeout(resolve, ms) );
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 main()
   .then(async (deployedData) => {
-    // await delay(80000);
-    // await verify(deployedData.CCCStore); //Verify the master contract
+    await delay(30000);
+    await verify(deployedData.CCCStore); //Verify the master contract
   
     process.exit(0);
   })

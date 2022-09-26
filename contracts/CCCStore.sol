@@ -4,11 +4,11 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 
-interface Factory {
+interface CCCFactory {
     function mint(address) external;
 }
 
-interface Pass {
+interface CCCPass {
     function claimedCount(address) external view returns (uint256);
     function claimPass(
         address sender,
@@ -21,8 +21,8 @@ interface Pass {
 }
 
 contract CCCStore is Ownable, VRFConsumerBase {
-    Pass public pass;
-    Factory public cccFactory;
+    CCCPass public cccPass;
+    CCCFactory public cccFactory;
 
     /**
         Max supply
@@ -68,7 +68,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
      */
     uint256 public constant maxMintPerTx = 100;
 
-    event SetPass(address pass);
+    event SetCCCPass(address cccPass);
     event SetCCCFactory(address cccFactory);
     event SetMintPrice(uint256 price);
     event SetOpeningHours(uint256 openingHours);
@@ -103,12 +103,12 @@ contract CCCStore is Ownable, VRFConsumerBase {
         _;
     }
 
-    function setPass(Pass _pass) external onlyOwner {
-        pass = _pass;
-        emit SetPass(address(_pass));
+    function setCCCPass(CCCPass _cccPass) external onlyOwner {
+        cccPass = _cccPass;
+        emit SetCCCPass(address(_cccPass));
     }
 
-    function setCCCFactory(Factory _cccFactory) external onlyOwner {
+    function setCCCFactory(CCCFactory _cccFactory) external onlyOwner {
         cccFactory = _cccFactory;
         emit SetCCCFactory(address(_cccFactory));
     }
@@ -131,6 +131,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
         }
         totalCCCMintedByTeam += maxCCCForTeam;
         totalCCCMinted += maxCCCForTeam;
+        CCCMinted[msg.sender] += maxCCCForTeam;
     }
 
     function mintCCC(
@@ -148,14 +149,14 @@ contract CCCStore is Ownable, VRFConsumerBase {
         uint256 amountWithDiscount = 0;
         bool isVIP = false;
         if (_passAmount > 0) {
-            uint256 senderClaimedCount = pass.claimedCount(msg.sender);
+            uint256 senderClaimedCount = cccPass.claimedCount(msg.sender);
             if (senderClaimedCount > 0) {
                 isVIP = true;
             }
             if (_passAmount > senderClaimedCount) {
                 uint256 senderUnclaimedCount = _passAmount - senderClaimedCount;
                 uint256 toClaim = _amountToMint > senderUnclaimedCount ? senderUnclaimedCount : _amountToMint;
-                bool claimed = pass.claimPass(msg.sender, _passAmount, toClaim, vSig, rSig, sSig);
+                bool claimed = cccPass.claimPass(msg.sender, _passAmount, toClaim, vSig, rSig, sSig);
                 if (claimed) {
                     amountWithDiscount = toClaim;
                     isVIP = true;

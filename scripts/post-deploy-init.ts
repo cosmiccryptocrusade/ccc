@@ -1,32 +1,32 @@
 import { ethers } from 'hardhat';
 
-const factoryAddress = '0xdE2bBeb807d5ba1fBeb42a37A5EB199e0Fc5Dd61';
-const passAddress = '0xd5381fb3Ee262Be5531ad4d5188549F080e9E9c4';
-const storeAddress = '0x8837E6100912Bdf52B12A24807800e6BD3BaC506';
+const factoryAddress = '0xEE7ef90c5D8e564638DFc0e152379c35BeE9685C';
+const passAddress = '0x5e0037ABf1AE4201152eE38cB91F49E7860Dd4bF';
+const storeAddress = '0x19F2EDC250C723f511376F262899370950e7C26B';
 
 const main: () => Promise<any> = async () => {
   const [deployer] = await ethers.getSigners();
   console.log('init contracts with the account:', deployer.address);
 
-  const Factory = await ethers.getContractFactory('CCCFactory');
-  const Pass = await ethers.getContractFactory('CCCPass');
-  const Store = await ethers.getContractFactory('CCCStore');
+  const Factory = await ethers.getContractFactory('contracts/CCCFactory.sol:CCCFactory');
+  const Pass = await ethers.getContractFactory('contracts/CCCPass.sol:CCCPass');
+  const Store = await ethers.getContractFactory('contracts/CCCStore.sol:CCCStore');
 
   const cccFactoryContract = await Factory.attach(factoryAddress);
-  const passContract = await Pass.attach(passAddress);
+  const cccPassContract = await Pass.attach(passAddress);
   const cccStoreContract = await Store.attach(storeAddress);
 
   //link em up
   await cccFactoryContract.setCCCStore(cccStoreContract.address);
-  await passContract.setStore(cccStoreContract.address);
   await cccStoreContract.setCCCFactory(cccFactoryContract.address);
-  await cccStoreContract.setPass(passContract.address);
+  await cccPassContract.setCCCStore(cccStoreContract.address);
+  await cccStoreContract.setCCCPass(cccPassContract.address);
 
-  await passContract.unpause();
+  await cccPassContract.unpause();
 
-  let openingHours = 0;
-  openingHours = await getCurrentTimestamp();
-  await cccStoreContract.setOpeningHours(openingHours);
+  // let openingHours = 0;
+  // openingHours = await getCurrentTimestamp();
+  // await cccStoreContract.setOpeningHours(openingHours);
 
   // await cccStoreContract.setMintPrice(10);
 

@@ -3,7 +3,6 @@ pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
 
 contract CCCPass is EIP712, Ownable {
     // EIP712 Feature
@@ -19,7 +18,7 @@ contract CCCPass is EIP712, Ownable {
 
     bool public paused = true;
     string public baseURI;
-    address public store;
+    address public cccStore;
     uint256 public claimUntil;
 
     event Paused();
@@ -33,8 +32,8 @@ contract CCCPass is EIP712, Ownable {
         baseURI = __baseURI;
     }
 
-    function setStore(address _store) external onlyOwner {
-        store = _store;
+    function setCCCStore(address _cccStore) external onlyOwner {
+        cccStore = _cccStore;
     }
 
     function pause() external onlyOwner {
@@ -55,10 +54,8 @@ contract CCCPass is EIP712, Ownable {
         bytes32 rSig,
         bytes32 sSig
     ) external returns(bool claimed) {
-        require(msg.sender == store, "Not store");
+        require(msg.sender == cccStore, "Not cccStore");
         require(paused == false, "Claims paused");
-        require(_passAmount - claimedCount[sender] >= _amountToMint, "Not enough pass");
-        claimedCount[sender] += _amountToMint;
 
         bytes32 digest = _hashTypedDataV4(
             keccak256(abi.encode(TYPEHASH, sender, _passAmount))
@@ -66,6 +63,9 @@ contract CCCPass is EIP712, Ownable {
         address signer = ecrecover(digest, vSig, rSig, sSig);
         require(signer == owner(), "Signature not owner");       
 
+        require(_passAmount - claimedCount[sender] >= _amountToMint, "Not enough pass");
+
+        claimedCount[sender] += _amountToMint;
         emit ClaimPass(sender, _amountToMint);
         return true;
     }

@@ -6,7 +6,7 @@ const main: () => Promise<any> = async () => {
   const [deployer] = await ethers.getSigners();
   console.log('Deploying contracts with the account:', deployer.address);
 
-  const Factory = await ethers.getContractFactory('CCCFactory');
+  const Factory = await ethers.getContractFactory('contracts/CCCFactory.sol:CCCFactory');
   const contract = await Factory.deploy(
     deployData.factoryContractConfigs.name,
     deployData.factoryContractConfigs.symbol,
@@ -15,7 +15,6 @@ const main: () => Promise<any> = async () => {
 
   await contract.deployed();
   console.log('Contract deployed at:', contract.address);
-
   return {
     'CCCFactory': contract.address,
   };
@@ -25,6 +24,7 @@ async function verify(contractAddress: any, ...args: any) {
   console.log("verifying", contractAddress, ...args);
   await hre.run("verify:verify", {
     address: contractAddress,
+    contract: "contracts/CCCFactory.sol:CCCFactory",
     constructorArguments: [
       ...args
     ],
@@ -32,12 +32,12 @@ async function verify(contractAddress: any, ...args: any) {
 }
 
 function delay(ms: number) {
-  return new Promise( resolve => setTimeout(resolve, ms) );
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 main()
   .then(async (deployedData) => {
-    await delay(80000);
+    await delay(30000);
     await verify(deployedData.CCCFactory,
       deployData.factoryContractConfigs.name,
       deployData.factoryContractConfigs.symbol,

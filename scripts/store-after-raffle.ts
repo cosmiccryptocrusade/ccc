@@ -25,9 +25,9 @@ const main: () => Promise<any> = async () => {
   // fs.writeFileSync("data/shuffle-data.json", JSON.stringify(shuffledArray));
 
   // withdraw
-  // const amount = BigNumber.from("200000000000000000");
-  // await cccStoreContract.withdraw(deployer.address, amount);
-  // console.log("withdraw", amount);
+  const amount = BigNumber.from("1000000000000000000");
+  await cccStoreContract.withdraw(deployer.address, amount);
+  console.log("withdraw", amount);
 };
 
 main()

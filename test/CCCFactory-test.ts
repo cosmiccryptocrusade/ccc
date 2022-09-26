@@ -1,11 +1,6 @@
 import chai from 'chai';
 import { ethers } from 'hardhat';
-import {
-  CCCFactory,
-  CCCFactory__factory,
-  TestCCCStoreForFactory as TestCCCStore,
-  TestCCCStoreForFactory__factory as TestCCCStore__factory,
-} from '../types';
+import { Contract } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { solidity } from 'ethereum-waffle';
 
@@ -13,42 +8,41 @@ chai.use(solidity);
 const { expect } = chai;
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000';
-const MAX_SUPPLY = 10000;
+const MAX_SUPPLY = 5000;
 
 const configs = {
-  name: 'TheProjectCCC',
-  symbol: 'CCC',
-  baseURI: 'test.com/',
+  name: 'Test',
+  symbol: 'TEST',
+  baseURI: 'ifps://test/',
 };
 
 describe('CCCFactory', () => {
   let [deployer, account1]: SignerWithAddress[] = [];
-  let cccFactoryContract: CCCFactory;
-  let cccStoreContract: TestCCCStore;
+  let cccFactoryContract: Contract;
+  let cccStoreContract: Contract;
 
   beforeEach(async () => {
     [deployer, account1] = await ethers.getSigners();
-    const CCCFactory = new CCCFactory__factory(deployer);
-    cccFactoryContract = await CCCFactory.deploy(
+    const Factory = await ethers.getContractFactory('contracts/CCCFactory.sol:CCCFactory');
+    cccFactoryContract = await Factory.deploy(
       configs.name,
       configs.symbol,
       configs.baseURI
     );
 
-    const CCCStore = new TestCCCStore__factory(deployer);
-    cccStoreContract = await CCCStore.deploy(cccFactoryContract.address);
+    const Store = await ethers.getContractFactory('Test_CCCStoreForFactory');
+    cccStoreContract = await Store.deploy(cccFactoryContract.address);
   });
 
   describe('constructor', async () => {
     it('Should be initialized successfully', async () => {
-      expect(await cccFactoryContract.baseURI()).to.eq(configs.baseURI);
+      expect(await cccFactoryContract.name()).to.eq(configs.name);
+      expect(await cccFactoryContract.symbol()).to.eq(configs.symbol);
       expect(await cccFactoryContract.baseURI()).to.eq(configs.baseURI);
       expect(await cccFactoryContract.MAX_SUPPLY()).to.eq(MAX_SUPPLY);
       expect(await cccFactoryContract.totalSupply()).to.eq(0);
       expect(await cccFactoryContract.owner()).to.eq(deployer.address);
       expect(await cccFactoryContract.cccStore()).to.eq(EMPTY_ADDRESS);
-      expect(await cccFactoryContract.name()).to.eq(configs.name);
-      expect(await cccFactoryContract.symbol()).to.eq(configs.symbol);
     });
   });
 
@@ -130,7 +124,7 @@ describe('CCCFactory', () => {
 
       const tokenId = await cccFactoryContract.totalSupply();
       await expect(cccFactoryContract.ownerOf(tokenId)).to.be.revertedWith(
-        'ERC721: owner query for nonexistent token'
+        'ERC721: invalid token ID'
       );
 
       await cccFactoryContract.connect(owner).mint(receiver.address);
@@ -151,7 +145,7 @@ describe('CCCFactory', () => {
 
       const tokenId = await cccFactoryContract.totalSupply();
       await expect(cccFactoryContract.ownerOf(tokenId)).to.be.revertedWith(
-        'ERC721: owner query for nonexistent token'
+        'ERC721: invalid token ID'
       );
 
       await cccStore.connect(receiver).mint(receiver.address);
