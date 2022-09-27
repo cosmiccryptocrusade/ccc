@@ -1,8 +1,8 @@
 import { ethers } from 'hardhat';
 
-const factoryAddress = '0xEE7ef90c5D8e564638DFc0e152379c35BeE9685C';
-const passAddress = '0x5e0037ABf1AE4201152eE38cB91F49E7860Dd4bF';
-const storeAddress = '0x19F2EDC250C723f511376F262899370950e7C26B';
+const factoryAddress = '0x84318040f440DDB71E31C271e1349B3F065e4E80';
+const passAddress = '0xB9cDc9Bc2002398E6a250D39F7b32ff6dCd36FcA';
+const storeAddress = '0xb6a549f0f59C4517cEa69ec7EfAe9Bd723C098E5';
 
 const main: () => Promise<any> = async () => {
   const [deployer] = await ethers.getSigners();

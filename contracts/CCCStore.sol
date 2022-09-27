@@ -35,7 +35,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
     bytes32 internal keyHash;
     uint256 internal fee;
     uint256 public shuffleNumber;
-    string public verificationHash; // hash to verify initial order. it will be the keccak256 hash of the ipfs hash
+    string public verificationHash = "cac4549537bc6847f748479b916677fc29948e8240f94fd73020dd7dd0ffab49"; // hash to verify initial order. it will be the keccak256 hash of the ipfs hash
 
     /**
         Team allocated CCC
@@ -55,7 +55,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
     /**
         Scheduling
      */
-    uint256 public openingHours;
+    uint256 public openingHours = 1665411010; // 2022-10-10 22:10:10 GMT+8
 
     /**
         Prices
