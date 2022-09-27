@@ -19,7 +19,6 @@ contract CCCPass is EIP712, Ownable {
     bool public paused = true;
     string public baseURI;
     address public cccStore;
-    uint256 public claimUntil;
 
     event Paused();
     event Unpaused();
