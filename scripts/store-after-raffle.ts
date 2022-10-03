@@ -2,7 +2,7 @@ import { ethers } from 'hardhat';
 import * as fs from 'fs';
 import { BigNumber } from 'ethers';
 
-const storeAddress = '0x8837E6100912Bdf52B12A24807800e6BD3BaC506';
+const storeAddress = '0xecdd794C02451A8A8EC213140795Ed1f66C407F0';
 
 const main: () => Promise<any> = async () => {
   const [deployer, public1, public2, vip1, vip2] = await ethers.getSigners();
@@ -20,14 +20,14 @@ const main: () => Promise<any> = async () => {
   // console.log("Check shuffleNumber", shuffleNumber);
 
   // shuffle
-  // let shuffledArray = await cccStoreContract.shuffle(10000);
-  // shuffledArray = shuffledArray.map((x: any) => {return x.toNumber()});
-  // fs.writeFileSync("data/shuffle-data.json", JSON.stringify(shuffledArray));
+  let shuffledArray = await cccStoreContract.shuffle();
+  shuffledArray = shuffledArray.map((x: any) => {return x.toNumber()});
+  fs.writeFileSync("data/shuffle-data.json", JSON.stringify(shuffledArray));
 
   // withdraw
-  const amount = BigNumber.from("1000000000000000000");
-  await cccStoreContract.withdraw(deployer.address, amount);
-  console.log("withdraw", amount);
+  // const amount = BigNumber.from("1000000000000000000");
+  // await cccStoreContract.withdraw(deployer.address, amount);
+  // console.log("withdraw", amount);
 };
 
 main()

@@ -21,14 +21,6 @@ contract CCCFactory is ERC721, Ownable {
         baseURI = __baseURI;
     }
 
-    modifier onlyOwnerOrStore() {
-        require(
-            cccStore == msg.sender || owner() == msg.sender,
-            "caller is neither cccStore nor owner"
-        );
-        _;
-    }
-
     function setCCCStore(address _cccStore) external onlyOwner {
         cccStore = _cccStore;
         emit SetCCCStore(_cccStore);
@@ -43,8 +35,9 @@ contract CCCFactory is ERC721, Ownable {
         return baseURI;
     }
 
-    function mint(address to) public onlyOwnerOrStore {
+    function mint(address to) external {
         require(totalSupply < MAX_SUPPLY, "Exceeds max supply");
+        require(msg.sender == cccStore, "Not cccStore");
         _mint(to, totalSupply);
         totalSupply += 1;
     }

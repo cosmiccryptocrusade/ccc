@@ -1,6 +1,6 @@
 import { ethers } from 'hardhat';
 
-const storeAddress = '0x8837E6100912Bdf52B12A24807800e6BD3BaC506';
+const storeAddress = '0xecdd794C02451A8A8EC213140795Ed1f66C407F0';
 
 const main: () => Promise<any> = async () => {
   const [deployer, public1, public2, vip1, vip2] = await ethers.getSigners();
@@ -50,10 +50,10 @@ const main: () => Promise<any> = async () => {
   //   "0x18d4239813128efb8c8342fd877bfeefb07be0e5332356f34bf22bdf1e7a33db",
   //   { value: mintPrice.mul(2).sub(VIPDiscount.mul(2)) }
   // );
-  // console.log((await cccStoreContract.totalCCCMinted()).toString());
-  // console.log((await cccStoreContract.totalCCCMintedByVIP()).toString());
-  // console.log((await cccStoreContract.totalETHDonated()).toString());
-  // console.log((await cccStoreContract.totalETHDonatedByVIP()).toString());
+  console.log((await cccStoreContract.totalCCCMinted()).toString());
+  console.log((await cccStoreContract.totalCCCMintedByVIP()).toString());
+  console.log((await cccStoreContract.totalETHDonated()).toString());
+  console.log((await cccStoreContract.totalETHDonatedByVIP()).toString());
 };
 
 const getCurrentTimestamp = async () => {

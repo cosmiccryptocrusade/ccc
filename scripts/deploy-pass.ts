@@ -7,10 +7,7 @@ const main: () => Promise<any> = async () => {
   console.log('Deploying contracts with the account:', deployer.address);
 
   const Pass = await ethers.getContractFactory('contracts/CCCPass.sol:CCCPass');
-  const contract = await Pass.deploy(
-    deployData.passContractConfigs.name,
-    deployData.passContractConfigs.baseURI
-  );
+  const contract = await Pass.deploy(deployData.passContractConfigs.name);
 
   await contract.deployed();
   console.log('Contract deployed at:', contract.address);
@@ -38,8 +35,7 @@ main()
   .then(async (deployedData) => {
     await delay(30000);
     await verify(deployedData.CCCPass,
-      deployData.passContractConfigs.name,
-      deployData.passContractConfigs.baseURI); //Verify the master contract
+      deployData.passContractConfigs.name); //Verify the master contract
   
     process.exit(0);
   })

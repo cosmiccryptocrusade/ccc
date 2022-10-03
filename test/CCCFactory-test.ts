@@ -105,35 +105,14 @@ describe('CCCFactory', () => {
   });
 
   describe('mint', async () => {
-    it('fails if transaction sender is neither owner nor cccStore', async () => {
+    it('fails if transaction sender is not cccStore', async () => {
       let stranger = account1;
 
-      expect(await cccFactoryContract.owner()).not.to.eq(stranger.address);
       expect(await cccFactoryContract.cccStore()).not.to.eq(stranger.address);
 
       await expect(
         cccFactoryContract.connect(stranger).mint(stranger.address)
-      ).to.be.revertedWith('caller is neither cccStore nor owner');
-    });
-
-    it('successfully mint new token by owner', async () => {
-      const owner = deployer;
-      expect(await cccFactoryContract.owner()).to.eq(owner.address);
-
-      const receiver = account1;
-
-      const tokenId = await cccFactoryContract.totalSupply();
-      await expect(cccFactoryContract.ownerOf(tokenId)).to.be.revertedWith(
-        'ERC721: invalid token ID'
-      );
-
-      await cccFactoryContract.connect(owner).mint(receiver.address);
-
-      const ownerOfToken = await cccFactoryContract.ownerOf(tokenId);
-      expect(ownerOfToken).to.eq(receiver.address);
-
-      const currentTotalSupply = await cccFactoryContract.totalSupply();
-      expect(currentTotalSupply).to.eq(tokenId.toNumber() + 1);
+      ).to.be.revertedWith('Not cccStore');
     });
 
     it('successfully mint new token by cccStore', async () => {
@@ -161,7 +140,12 @@ describe('CCCFactory', () => {
   describe('tokenURI', async () => {
     it('returns with custom baseURI', async () => {
       const tokenId = await cccFactoryContract.totalSupply();
-      await cccFactoryContract.connect(deployer).mint(deployer.address);
+      const cccStore = cccStoreContract;
+      await cccFactoryContract.connect(deployer).setCCCStore(cccStore.address);
+
+      const receiver = account1;
+
+      await cccStore.connect(receiver).mint(receiver.address);
 
       let currentTokenURI = await cccFactoryContract.tokenURI(tokenId);
       expect(currentTokenURI).to.eq(`${configs.baseURI}${tokenId}`);

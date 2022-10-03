@@ -17,7 +17,7 @@ interface CCCPass {
         uint8 vSig,
         bytes32 rSig,
         bytes32 sSig
-    ) external returns(bool claimed);
+    ) external;
 }
 
 contract CCCStore is Ownable, VRFConsumerBase {
@@ -35,7 +35,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
     bytes32 internal keyHash;
     uint256 internal fee;
     uint256 public shuffleNumber;
-    string public verificationHash = "cac4549537bc6847f748479b916677fc29948e8240f94fd73020dd7dd0ffab49"; // hash to verify initial order. it will be the keccak256 hash of the ipfs hash
+    string public constant verificationHash = "cac4549537bc6847f748479b916677fc29948e8240f94fd73020dd7dd0ffab49"; // hash to verify initial order. it will be the keccak256 hash of the ipfs hash
 
     /**
         Team allocated CCC
@@ -61,7 +61,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
         Prices
      */
     uint256 public mintPrice = 0.2 ether;
-    uint256 public VIPDiscount = 0.05 ether;
+    uint256 public constant VIPDiscount = 0.05 ether;
 
     /**
         Security
@@ -116,6 +116,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
     // price in terms of 0.01 ether
     function setMintPrice(uint256 _price) external onlyOwner {
         mintPrice = _price * 0.01 ether;
+        require(mintPrice >= VIPDiscount, "mintPrice lower than VIPDiscount");
         emit SetMintPrice(_price);
     }
 
@@ -146,37 +147,28 @@ contract CCCStore is Ownable, VRFConsumerBase {
         require(_amountToMint <= maxMintPerTx, "mint amount exceeds maximum");
         require(_amountToMint > 0, "Need to mint more than 0");
 
-        uint256 amountWithDiscount = 0;
-        bool isVIP = false;
+        uint256 toClaim = 0;
         if (_passAmount > 0) {
             uint256 senderClaimedCount = cccPass.claimedCount(msg.sender);
-            if (senderClaimedCount > 0) {
-                isVIP = true;
-            }
             if (_passAmount > senderClaimedCount) {
                 uint256 senderUnclaimedCount = _passAmount - senderClaimedCount;
-                uint256 toClaim = _amountToMint > senderUnclaimedCount ? senderUnclaimedCount : _amountToMint;
-                bool claimed = cccPass.claimPass(msg.sender, _passAmount, toClaim, vSig, rSig, sSig);
-                if (claimed) {
-                    amountWithDiscount = toClaim;
-                    isVIP = true;
-                }
+                toClaim = _amountToMint > senderUnclaimedCount ? senderUnclaimedCount : _amountToMint;
+                // claimPass will revert if fail
+                cccPass.claimPass(msg.sender, _passAmount, toClaim, vSig, rSig, sSig);
             }
         }
 
-        uint256 totalPrice = mintPrice * _amountToMint - VIPDiscount * amountWithDiscount;
+        uint256 totalPrice = mintPrice * _amountToMint - VIPDiscount * toClaim;
         require(totalPrice <= msg.value, "Not enough money");
-
-        uint256 senderCCCMinted = CCCMinted[msg.sender];
 
         for (uint256 i = 0; i < _amountToMint; i += 1) {
             cccFactory.mint(msg.sender);
         }
 
         totalCCCMinted += _amountToMint;
-        CCCMinted[msg.sender] = senderCCCMinted + _amountToMint;
+        CCCMinted[msg.sender] += _amountToMint;
         totalETHDonated += totalPrice;
-        if (isVIP) {
+        if (_passAmount > 0) {
             totalCCCMintedByVIP += _amountToMint;
             totalETHDonatedByVIP += totalPrice;
         }
@@ -193,20 +185,21 @@ contract CCCStore is Ownable, VRFConsumerBase {
      * Callback from requestRandomness()
      */
     function fulfillRandomness(bytes32, uint256 randomness) internal override {
-        require(shuffleNumber == 0, "shuffle number is already set");
+        require(shuffleNumber == 0, "shuffleNumber is already set");
         shuffleNumber = randomness;
     }
 
-    // Fisher-Yates shuffle to obtained shuffled array of 0 to 9999. token id #n will be picture shuffledArray[n]
-    function shuffle(uint256 n) public view returns (uint256[] memory shuffledArray) {
+    // Fisher-Yates shuffle to obtained shuffled array of 0 to maxCCC. token id #n will be picture shuffledArray[n]
+    function shuffle() external view returns (uint256[] memory shuffledArray) {
+        require(shuffleNumber > 0, "shuffleNumber is not set");
         // initialize array
-        shuffledArray = new uint256[](n);
-        for (uint256 i = 0; i < n; i++) {
+        shuffledArray = new uint256[](maxCCC);
+        for (uint256 i = 0; i < maxCCC; i++) {
             shuffledArray[i] = i;
         }
         uint256 entropy = shuffleNumber;
 
-        for (uint256 i = n-1; i > 0; i--) {
+        for (uint256 i = maxCCC-1; i > 0; i--) {
             // select random number from 0 to i inclusive
             entropy = uint256(keccak256(abi.encode(entropy)));
             uint256 j = (entropy) % (i+1);

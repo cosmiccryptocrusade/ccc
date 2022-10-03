@@ -50,15 +50,10 @@ describe('CCCStore-mintWithPass', async () => {
       );
 
       const Pass = await ethers.getContractFactory('contracts/CCCPass.sol:CCCPass');
-      cccPassContract = await Pass.deploy(
-        configs.name,
-        configs.baseURI
-      );
+      cccPassContract = await Pass.deploy(configs.name);
 
       const Store = await ethers.getContractFactory('CCCStore');
       cccStoreContract = await Store.deploy();
-
-      console.log('contractOwner ', contractOwner.address);
 
       await cccFactoryContract.setCCCStore(cccStoreContract.address);
       await cccStoreContract.setCCCFactory(cccFactoryContract.address);

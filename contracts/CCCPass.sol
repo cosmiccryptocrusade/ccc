@@ -25,10 +25,8 @@ contract CCCPass is EIP712, Ownable {
     event ClaimPass(address claimer, uint256 amount);
 
     constructor(
-        string memory __name,
-        string memory __baseURI
+        string memory __name
     ) EIP712(__name, "1") {
-        baseURI = __baseURI;
     }
 
     function setCCCStore(address _cccStore) external onlyOwner {
@@ -52,7 +50,7 @@ contract CCCPass is EIP712, Ownable {
         uint8 vSig,
         bytes32 rSig,
         bytes32 sSig
-    ) external returns(bool claimed) {
+    ) external {
         require(msg.sender == cccStore, "Not cccStore");
         require(paused == false, "Claims paused");
 
@@ -66,6 +64,5 @@ contract CCCPass is EIP712, Ownable {
 
         claimedCount[sender] += _amountToMint;
         emit ClaimPass(sender, _amountToMint);
-        return true;
     }
 }

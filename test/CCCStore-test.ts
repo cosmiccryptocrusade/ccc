@@ -14,6 +14,7 @@ const MAX_PRE_MINT_SUPPLY = 345;
 const MAX_MINT_PER_TX = 100;
 const MINT_PRICE = ethers.utils.parseEther('0.2');
 const VIP_DISCOUNT = ethers.utils.parseEther('0.05');
+const OPENING_HOURS = 1665411010; // 2022-10-10 22:10:10 GMT+8
 
 const configs = {
   name: 'Test',
@@ -52,10 +53,7 @@ describe('CCCStore', () => {
     );
 
     const Pass = await ethers.getContractFactory('contracts/CCCPass.sol:CCCPass');
-    cccPassContract = await Pass.deploy(
-      configs.name,
-      configs.baseURI
-    );
+    cccPassContract = await Pass.deploy(configs.name);
 
     const Store = await ethers.getContractFactory('CCCStore');
     cccStoreContract = await Store.deploy();
@@ -115,7 +113,7 @@ describe('CCCStore', () => {
       expect(await cccStoreContract.CCCMinted(deployer.address)).to.eq(0);
       expect(await cccStoreContract.totalETHDonated()).to.eq(0);
       expect(await cccStoreContract.totalETHDonatedByVIP()).to.eq(0);
-      expect(await cccStoreContract.openingHours()).to.eq(0);
+      expect(await cccStoreContract.openingHours()).to.eq(OPENING_HOURS);
       expect(await cccStoreContract.mintPrice()).to.eq(MINT_PRICE);
       expect(await cccStoreContract.VIPDiscount()).to.eq(VIP_DISCOUNT);
       expect(await cccStoreContract.maxMintPerTx()).to.eq(MAX_MINT_PER_TX);
@@ -255,7 +253,6 @@ describe('CCCStore', () => {
 
   describe('mintCCC', async () => {
     let openingHours = 0;
-    const passType = 0;
 
     beforeEach(async () => {
       openingHours = await getCurrentTimestamp();
@@ -382,11 +379,11 @@ describe('CCCStore', () => {
     });
   });
 
-  describe('shuffle', async () => {
-    it("fails if error", async () => {
-      const shuffledArray = await cccStoreContract.shuffle(1000);
-    });
-  });
+  // describe('shuffle', async () => {
+  //   it("fails if error", async () => {
+  //     const shuffledArray = await cccStoreContract.shuffle(1000);
+  //   });
+  // });
 
   describe('withdraw', async () => {
     it("fails for non-owner's request", async () => {
@@ -408,6 +405,7 @@ describe('CCCStore', () => {
       const amount = 10;
       const totalPrice = MINT_PRICE.mul(amount);
 
+      await cccStoreContract.connect(deployer).setOpeningHours(0);
       await cccStoreContract
         .connect(receiver)
         .mintCCC(0, amount, ...noSig, { value: totalPrice });
@@ -435,6 +433,7 @@ describe('CCCStore', () => {
       const amount = 10;
       const totalPrice = MINT_PRICE.mul(amount);
 
+      await cccStoreContract.connect(deployer).setOpeningHours(0);
       await cccStoreContract
         .connect(receiver)
         .mintCCC(0, amount, ...noSig, { value: totalPrice });
