@@ -1,8 +1,8 @@
 import { ethers } from 'hardhat';
 
-const factoryAddress = '0x73a48464660C5B440add0E3D82fA72e2DC215b3d';
-const passAddress = '0xeC82867202af675e1E3277Aa18f460dBd57e4571';
-const storeAddress = '0xecdd794C02451A8A8EC213140795Ed1f66C407F0';
+const factoryAddress = '0xC9433cd80f6f5D4421Eb0b0c3D221A3a9Dff1B7b';
+const passAddress = '0x036BfB0A16719b5a9812F6cbA3e974A52c57CF22';
+const storeAddress = '0x8CE51278a22EDD6F7A99BAD1dF2b50868E5bb543';
 
 const main: () => Promise<any> = async () => {
   const [deployer] = await ethers.getSigners();
@@ -21,7 +21,6 @@ const main: () => Promise<any> = async () => {
   await cccStoreContract.setCCCFactory(cccFactoryContract.address);
   await cccPassContract.setCCCStore(cccStoreContract.address);
   await cccStoreContract.setCCCPass(cccPassContract.address);
-
   await cccPassContract.unpause();
 
   // let openingHours = 0;

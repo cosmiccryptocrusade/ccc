@@ -1,6 +1,6 @@
 import { ethers } from 'hardhat';
 
-const storeAddress = '0xecdd794C02451A8A8EC213140795Ed1f66C407F0';
+const storeAddress = '0x8CE51278a22EDD6F7A99BAD1dF2b50868E5bb543';
 
 const main: () => Promise<any> = async () => {
   const [deployer, public1, public2, vip1, vip2] = await ethers.getSigners();

@@ -43,7 +43,8 @@ const main = async () => {
     Object.values(PassReceiverData.receiverData).map(
       async (receiverData) => {
         let receiver = receiverData.receiver, amount = receiverData.amount;
-        console.log(receiver, amount)
+        receiver = ethers.utils.getAddress(receiver);
+        // console.log(receiver, amount)
         const signature = await signTypedData({
           signer: owner,
           domain: PassReceiverData.domain,
@@ -65,7 +66,7 @@ const main = async () => {
       }
     )
   );
-
+  console.log(Object.keys(passReqMap).length);
   fs.writeFileSync('data/pass-signatures.json', JSON.stringify(passReqMap));
 };
 

@@ -35,7 +35,7 @@ contract CCCStore is Ownable, VRFConsumerBase {
     bytes32 internal keyHash;
     uint256 internal fee;
     uint256 public shuffleNumber;
-    string public constant verificationHash = "cac4549537bc6847f748479b916677fc29948e8240f94fd73020dd7dd0ffab49"; // hash to verify initial order. it will be the keccak256 hash of the ipfs hash
+    string public constant verificationHash = "39f94519b0bfef1b88305831c99f8cb1a0dc3b65d485225eae8873f3c31d24b9"; // hash to verify initial order. it is the keccak256 hash of the ipfs hash
 
     /**
         Team allocated CCC
@@ -76,24 +76,24 @@ contract CCCStore is Ownable, VRFConsumerBase {
     event Withdraw(address to);
 
     // mainnet
-    // constructor()
-    //     VRFConsumerBase(
-    //         0xf0d54349aDdcf704F77AE15b96510dEA15cb7952, // VRF Coordinator
-    //         0x514910771AF9Ca656af840dff83E8264EcF986CA  // LINK Token
-    //     ) {
-    //     keyHash = 0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445;
-    //     fee = 2 * 10 ** 18;
-    // }
-
-    // goerli
     constructor()
         VRFConsumerBase(
-            0x2bce784e69d2Ff36c71edcB9F88358dB0DfB55b4, // VRF Coordinator
-            0x326C977E6efc84E512bB9C30f76E30c160eD06FB  // LINK Token
+            0xf0d54349aDdcf704F77AE15b96510dEA15cb7952, // VRF Coordinator
+            0x514910771AF9Ca656af840dff83E8264EcF986CA  // LINK Token
         ) {
-        keyHash = 0x0476f9a745b61ea5c0ab224d3a6e4c99f0b02fce4da01143a4f70aa80ae76e8a;
-        fee = 0.1 * 10 ** 18;
+        keyHash = 0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445;
+        fee = 2 * 10 ** 18;
     }
+
+    // goerli
+    // constructor()
+    //     VRFConsumerBase(
+    //         0x2bce784e69d2Ff36c71edcB9F88358dB0DfB55b4, // VRF Coordinator
+    //         0x326C977E6efc84E512bB9C30f76E30c160eD06FB  // LINK Token
+    //     ) {
+    //     keyHash = 0x0476f9a745b61ea5c0ab224d3a6e4c99f0b02fce4da01143a4f70aa80ae76e8a;
+    //     fee = 0.1 * 10 ** 18;
+    // }
 
     modifier whenOpened() {
         require(
